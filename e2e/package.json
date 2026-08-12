@@ -10,7 +10,7 @@
     "install:browsers": "playwright install --with-deps"
   },
   "devDependencies": {
-    "@types/node": "24.3.0",
+    "@types/node": "26.2.0",
     "@playwright/test": "1.61.1",
     "typescript": "5.9.2"
   }
