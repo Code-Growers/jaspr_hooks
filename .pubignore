@@ -11,6 +11,7 @@ playwright-report/
 test-results/
 example/build/
 tmp/
+screenshots/
 **/node_modules/
 **/playwright-report/
 **/test-results/

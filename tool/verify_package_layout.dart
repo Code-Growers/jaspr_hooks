@@ -7,8 +7,6 @@ const _required = <String>[
   'THIRD_PARTY_NOTICES.md',
   'lib/jaspr_hooks.dart',
   'example/example.md',
-  'screenshots/hook_gallery.png',
-  'screenshots/hook_demo.png',
 ];
 
 const _forbidden = <String>[
@@ -19,6 +17,7 @@ const _forbidden = <String>[
   'test-results',
   'example/build',
   'build',
+  'screenshots',
 ];
 
 void main() {

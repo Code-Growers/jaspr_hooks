@@ -5,12 +5,6 @@ repository: https://github.com/Code-Growers/jaspr_hooks
 issue_tracker: https://github.com/Code-Growers/jaspr_hooks/issues
 documentation: https://code-growers.github.io/jaspr_hooks/
 
-screenshots:
-  - description: The jaspr_hooks catalog rendered by the example application.
-    path: screenshots/hook_gallery.png
-  - description: The interactive useEffect demo after changing its dependency.
-    path: screenshots/hook_demo.png
-
 topics:
   - jaspr
   - hooks

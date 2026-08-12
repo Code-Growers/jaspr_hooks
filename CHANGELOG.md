@@ -12,6 +12,10 @@
   listeners, click-outside detection, and hover state.
 - Expanded the interactive catalog, AI-agent reference, semantic tests, and
   production-browser coverage to all 57 exported hooks.
+- Removed the legacy pub.dev screenshot assets and excluded future local
+  screenshots from source and package archives.
+- Updated the Playwright, TypeScript, Node.js type, and GitHub Actions Node.js
+  toolchains.
 
 # 0.1.0-dev.2
 
