@@ -65,10 +65,42 @@ void main() {
     expect(changes, 0, reason: 'initial browser synchronization is not a change');
   });
 
+  testClient('media query and preferred motion synchronize after the first frame', (
+    tester,
+  ) async {
+    final mediaHistory = <MediaQueryMatch>[];
+    final motionHistory = <PreferredMotion>[];
+    var mediaChanges = 0;
+    var motionChanges = 0;
+
+    tester.pumpComponent(
+      HookBuilder(
+        builder: (context) {
+          mediaHistory.add(useMediaQuery('(min-width: 1px)'));
+          motionHistory.add(usePreferredMotion());
+          useOnMediaQueryChange('(min-width: 1px)', (previous, current) => mediaChanges++);
+          useOnPreferredMotionChange((previous, current) => motionChanges++);
+          return const Component.empty();
+        },
+      ),
+    );
+
+    expect(mediaHistory.first, MediaQueryMatch.unknown);
+    expect(motionHistory.first, PreferredMotion.unknown);
+    await pumpEventQueue();
+    expect(mediaHistory.last, MediaQueryMatch.matches);
+    expect(motionHistory.last, isNot(PreferredMotion.unknown));
+    expect(mediaChanges, 0);
+    expect(motionChanges, 0);
+  });
+
   testClient('browser lifecycle hooks dispose safely before later events', (
     tester,
   ) async {
     final harness = TestHarnessController();
+    final document = web.document as JSObject;
+    final restoreHidden = _overrideJsProperty(document, 'hidden', false.toJS);
+    addTearDown(restoreHidden);
     var visibilityChanges = 0;
     var colorChanges = 0;
 
@@ -94,6 +126,8 @@ void main() {
     await pumpEventQueue();
     harness.unmountChild();
     await pumpEventQueue();
+    document.setProperty('hidden'.toJS, true.toJS);
+    web.document.dispatchEvent(web.Event('visibilitychange'));
 
     expect(visibilityChanges, 0);
     expect(colorChanges, 0);
@@ -217,6 +251,42 @@ void main() {
       media.setProperty('matches'.toJS, true.toJS);
       listeners.single.callAsFunction(media, web.Event('change'));
       expect(changes, <PreferredColorScheme>[PreferredColorScheme.dark]);
+
+      subscription.cancel();
+      expect(listeners, isEmpty);
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  test('generic media queries use legacy listeners and report transitions', () {
+    final media = JSObject();
+    final listeners = <JSFunction>[];
+    media
+      ..setProperty('matches'.toJS, false.toJS)
+      ..setProperty(
+        'addListener'.toJS,
+        ((JSFunction listener) => listeners.add(listener)).toJS,
+      )
+      ..setProperty(
+        'removeListener'.toJS,
+        ((JSFunction listener) => listeners.remove(listener)).toJS,
+      );
+    final restoreMatchMedia = _overrideJsProperty(
+      web.window as JSObject,
+      'matchMedia',
+      ((JSString _) => media).toJS,
+    );
+    final changes = <MediaQueryMatch>[];
+
+    try {
+      expect(platform.readMediaQuery('(test)'), MediaQueryMatch.doesNotMatch);
+      final subscription = platform.watchMediaQuery('(test)', changes.add);
+      expect(listeners, hasLength(1));
+
+      media.setProperty('matches'.toJS, true.toJS);
+      listeners.single.callAsFunction(media, web.Event('change'));
+      expect(changes, <MediaQueryMatch>[MediaQueryMatch.matches]);
 
       subscription.cancel();
       expect(listeners, isEmpty);

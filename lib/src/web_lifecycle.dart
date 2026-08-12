@@ -37,12 +37,13 @@ class _DocumentVisibilityHookState extends HookState<DocumentVisibility, _Docume
       if (!mounted || generation != _generation) {
         return;
       }
-      final current = platform.readDocumentVisibility();
-      _subscription = platform.watchDocumentVisibility((value) {
-        if (mounted && value != _value) {
+      final observation = platform.observeDocumentVisibility((value) {
+        if (mounted && generation == _generation && value != _value) {
           setState(() => _value = value);
         }
       });
+      _subscription = observation.subscription;
+      final current = observation.value;
       if (current != _value) {
         setState(() => _value = current);
       }
@@ -90,14 +91,22 @@ class _OnDocumentVisibilityChangeHookState extends HookState<void, _OnDocumentVi
       if (!mounted || generation != _generation) {
         return;
       }
-      _previous = platform.readDocumentVisibility();
-      _subscription = platform.watchDocumentVisibility((current) {
+      final observation = platform.observeDocumentVisibility((current) {
+        if (!mounted || generation != _generation) {
+          return;
+        }
         final previous = _previous;
         _previous = current;
         if (current != previous) {
-          hook.callback(previous, current);
+          try {
+            hook.callback(previous, current);
+          } catch (error, stackTrace) {
+            reportHookError(error, stackTrace);
+          }
         }
       });
+      _subscription = observation.subscription;
+      _previous = observation.value;
     });
   }
 
@@ -142,12 +151,13 @@ class _PreferredColorSchemeHookState extends HookState<PreferredColorScheme, _Pr
       if (!mounted || generation != _generation) {
         return;
       }
-      final current = platform.readPreferredColorScheme();
-      _subscription = platform.watchPreferredColorScheme((value) {
-        if (mounted && value != _value) {
+      final observation = platform.observePreferredColorScheme((value) {
+        if (mounted && generation == _generation && value != _value) {
           setState(() => _value = value);
         }
       });
+      _subscription = observation.subscription;
+      final current = observation.value;
       if (current != _value) {
         setState(() => _value = current);
       }
@@ -195,14 +205,22 @@ class _OnPreferredColorSchemeChangeHookState extends HookState<void, _OnPreferre
       if (!mounted || generation != _generation) {
         return;
       }
-      _previous = platform.readPreferredColorScheme();
-      _subscription = platform.watchPreferredColorScheme((current) {
+      final observation = platform.observePreferredColorScheme((current) {
+        if (!mounted || generation != _generation) {
+          return;
+        }
         final previous = _previous;
         _previous = current;
         if (current != previous) {
-          hook.callback(previous, current);
+          try {
+            hook.callback(previous, current);
+          } catch (error, stackTrace) {
+            reportHookError(error, stackTrace);
+          }
         }
       });
+      _subscription = observation.subscription;
+      _previous = observation.value;
     });
   }
 
@@ -215,4 +233,174 @@ class _OnPreferredColorSchemeChangeHookState extends HookState<void, _OnPreferre
     _subscription?.cancel();
     _subscription = null;
   }
+}
+
+/// Returns whether the document matches [query].
+///
+/// This returns [MediaQueryMatch.unknown] during SSR and the first hydration
+/// build, then synchronizes after the first client frame.
+MediaQueryMatch useMediaQuery(String query) {
+  return use(_MediaQueryHook(query));
+}
+
+class _MediaQueryHook extends Hook<MediaQueryMatch> {
+  const _MediaQueryHook(this.query);
+
+  final String query;
+
+  @override
+  _MediaQueryHookState createState() => _MediaQueryHookState();
+}
+
+class _MediaQueryHookState extends HookState<MediaQueryMatch, _MediaQueryHook> {
+  MediaQueryMatch _value = MediaQueryMatch.unknown;
+  platform.LifecycleSubscription? _subscription;
+  int _generation = 0;
+
+  @override
+  void initHook() {
+    _scheduleSynchronization();
+  }
+
+  @override
+  void didUpdateHook(_MediaQueryHook oldHook) {
+    if (hook.query != oldHook.query) {
+      _subscription?.cancel();
+      _subscription = null;
+      _value = MediaQueryMatch.unknown;
+      _scheduleSynchronization();
+    }
+  }
+
+  void _scheduleSynchronization() {
+    final generation = ++_generation;
+    if (!context.binding.isClient) {
+      return;
+    }
+    context.binding.addPostFrameCallback(() {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      final observation = platform.observeMediaQuery(hook.query, (value) {
+        if (mounted && generation == _generation && value != _value) {
+          setState(() => _value = value);
+        }
+      });
+      _subscription = observation.subscription;
+      final current = observation.value;
+      if (current != _value) {
+        setState(() => _value = current);
+      }
+    });
+  }
+
+  @override
+  MediaQueryMatch build(context) => _value;
+
+  @override
+  void dispose() {
+    _generation++;
+    _subscription?.cancel();
+    _subscription = null;
+  }
+}
+
+/// Calls [callback] when [query] changes after initial browser synchronization.
+void useOnMediaQueryChange(String query, MediaQueryCallback callback) {
+  use(_OnMediaQueryChangeHook(query, callback));
+}
+
+class _OnMediaQueryChangeHook extends Hook<void> {
+  const _OnMediaQueryChangeHook(this.query, this.callback);
+
+  final String query;
+  final MediaQueryCallback callback;
+
+  @override
+  _OnMediaQueryChangeHookState createState() => _OnMediaQueryChangeHookState();
+}
+
+class _OnMediaQueryChangeHookState extends HookState<void, _OnMediaQueryChangeHook> {
+  platform.LifecycleSubscription? _subscription;
+  MediaQueryMatch _previous = MediaQueryMatch.unknown;
+  int _generation = 0;
+
+  @override
+  void initHook() {
+    _scheduleSynchronization();
+  }
+
+  @override
+  void didUpdateHook(_OnMediaQueryChangeHook oldHook) {
+    if (hook.query != oldHook.query) {
+      _subscription?.cancel();
+      _subscription = null;
+      _previous = MediaQueryMatch.unknown;
+      _scheduleSynchronization();
+    }
+  }
+
+  void _scheduleSynchronization() {
+    final generation = ++_generation;
+    if (!context.binding.isClient) {
+      return;
+    }
+    context.binding.addPostFrameCallback(() {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      final observation = platform.observeMediaQuery(hook.query, (current) {
+        if (!mounted || generation != _generation) {
+          return;
+        }
+        final previous = _previous;
+        _previous = current;
+        if (current != previous) {
+          try {
+            hook.callback(previous, current);
+          } catch (error, stackTrace) {
+            reportHookError(error, stackTrace);
+          }
+        }
+      });
+      _subscription = observation.subscription;
+      _previous = observation.value;
+    });
+  }
+
+  @override
+  void build(context) {}
+
+  @override
+  void dispose() {
+    _generation++;
+    _subscription?.cancel();
+    _subscription = null;
+  }
+}
+
+const _preferredMotionQuery = '(prefers-reduced-motion: reduce)';
+
+/// Returns the browser's preferred animation and transition behavior.
+PreferredMotion usePreferredMotion() {
+  return switch (useMediaQuery(_preferredMotionQuery)) {
+    MediaQueryMatch.unknown => PreferredMotion.unknown,
+    MediaQueryMatch.matches => PreferredMotion.reduce,
+    MediaQueryMatch.doesNotMatch => PreferredMotion.noPreference,
+  };
+}
+
+/// Calls [callback] when the browser's preferred motion behavior changes.
+void useOnPreferredMotionChange(PreferredMotionCallback callback) {
+  useOnMediaQueryChange(_preferredMotionQuery, (previous, current) {
+    callback(_preferredMotion(previous), _preferredMotion(current));
+  });
+}
+
+PreferredMotion _preferredMotion(MediaQueryMatch match) {
+  return switch (match) {
+    MediaQueryMatch.unknown => PreferredMotion.unknown,
+    MediaQueryMatch.matches => PreferredMotion.reduce,
+    MediaQueryMatch.doesNotMatch => PreferredMotion.noPreference,
+  };
 }

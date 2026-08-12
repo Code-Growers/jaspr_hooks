@@ -7,7 +7,18 @@ description: Cache a computed object until an ordered key list changes.
 
 `useMemoized(valueBuilder, [keys])` evaluates the builder immediately and preserves the result while the hook state and ordered keys remain compatible.
 
-With the default empty key list, the value is created once per mount. Include every value that changes the identity or configuration of the resource. Disposal is not automatic; pair disposable objects with `useEffect` or write a custom hook.
+With the default empty key list, the value is created once per mount. Include every value that changes the identity or configuration of the value. Disposal is not automatic; use `useDisposable` for an owned resource.
+
+## Signature and parameters
+
+```dart
+T useMemoized<T>(
+  T Function() valueBuilder, [
+  List<Object?> keys = const <Object>[],
+])
+```
+
+`valueBuilder` runs immediately when state is created. Ordered `keys` define cache identity, and the cached `T` is returned.
 
 ## Usage
 
@@ -31,11 +42,18 @@ class FormatterView extends HookComponent {
 
 <HookDemo name="useMemoized"/>
 
+## Ownership and lifecycle
+
+The hook retains the value but assumes no disposal ownership. A key change drops the old reference and computes a replacement; unmount drops the final reference without cleanup.
+
 ## Server rendering
 
 The builder also runs during server rendering. Keep its result deterministic for the first client build and do not construct browser-only objects on the server.
 
+## Common mistakes
+
+Do not omit changing identity inputs from keys or mutate keys after passing them. Do not use memoization for side effects. Choose `useDisposable` when replacement or unmount must release the value.
+
 ## Related APIs
 
-Use `useCallback` for a stable function and `useRef` for a mutable cell. Use `useEffect` to attach cleanup to a memoized resource.
-
+Use `useCallback` for a stable function, `useRef` for a mutable cell, and `useDisposable` for keyed ownership with cleanup.

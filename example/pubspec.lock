@@ -407,7 +407,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.1.0-dev.2"
+    version: "0.1.0-dev.3"
   jaspr_lints:
     dependency: "direct dev"
     description:
@@ -753,7 +753,7 @@ packages:
     source: hosted
     version: "1.4.0"
   universal_web:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: universal_web
       sha256: "618a9d8659e9429875f69d4da0fb9c0c143d3d4cdab28b4545502088aa50ed62"

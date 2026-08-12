@@ -1,6 +1,6 @@
 name: jaspr_hooks
 description: React-style lifecycle and state hooks for native Jaspr components.
-version: 0.1.0-dev.2
+version: 0.1.0-dev.3
 repository: https://github.com/Code-Growers/jaspr_hooks
 issue_tracker: https://github.com/Code-Growers/jaspr_hooks/issues
 documentation: https://code-growers.github.io/jaspr_hooks/
@@ -23,6 +23,7 @@ environment:
 
 dependencies:
   jaspr: '>=0.23.3 <0.24.0'
+  universal_web: ^1.1.1+1
   web: ^1.1.1
 
 dev_dependencies:

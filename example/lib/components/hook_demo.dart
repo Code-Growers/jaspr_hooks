@@ -4,6 +4,8 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:jaspr_content/theme.dart';
 import 'package:jaspr_hooks/jaspr_hooks.dart';
+import 'package:jaspr_hooks/web.dart' as hooks_web;
+import 'package:universal_web/web.dart' as web;
 
 @client
 class HookDemo extends StatelessComponent {
@@ -13,31 +15,62 @@ class HookDemo extends StatelessComponent {
 
   static const Set<String> supportedNames = <String>{
     'use',
+    'useAsyncAction',
     'useCallback',
     'useContext',
+    'useCounter',
     'useDebounced',
+    'useDisposable',
     'useDocumentVisibility',
     'useEffect',
+    'useEffectOnce',
+    'useElementSize',
+    'useEventListener',
+    'useExternalStore',
     'useFuture',
+    'useHover',
+    'useImperativeHandle',
+    'useInherited',
+    'useIntersection',
+    'useInterval',
     'useIsMounted',
+    'useLatest',
+    'useList',
     'useListenable',
     'useListenableSelector',
+    'useMap',
+    'useMediaQuery',
     'useMemoized',
+    'useMount',
+    'useMutationObserver',
+    'useNodeKey',
+    'useOnClickOutside',
     'useOnDocumentVisibilityChange',
     'useOnListenableChange',
+    'useOnMediaQueryChange',
     'useOnPreferredColorSchemeChange',
+    'useOnPreferredMotionChange',
     'useOnStreamChange',
+    'useOptimistic',
     'usePostFrameEffect',
     'usePreferredColorScheme',
+    'usePreferredMotion',
     'usePrevious',
+    'useQueue',
     'useReducer',
     'useRef',
+    'useSet',
     'useState',
     'useStream',
     'useStreamController',
+    'useTimeout',
+    'useToggle',
+    'useUnmount',
+    'useUpdateEffect',
     'useValueChanged',
     'useValueListenable',
     'useValueNotifier',
+    'useWindowSize',
   };
 
   @override
@@ -55,31 +88,62 @@ class HookDemo extends StatelessComponent {
   Component _buildDemo(String name, BuildContext context) {
     return switch (name) {
       'use' => _useDemo(),
+      'useAsyncAction' => _useAsyncActionDemo(),
       'useCallback' => _useCallbackDemo(),
       'useContext' => _useContextDemo(),
+      'useCounter' => _useCounterDemo(),
       'useDebounced' => _useDebouncedDemo(),
+      'useDisposable' => _useDisposableDemo(),
       'useDocumentVisibility' => _useDocumentVisibilityDemo(),
       'useEffect' => _useEffectDemo(context),
+      'useEffectOnce' => _useEffectOnceDemo(),
+      'useElementSize' => _useElementSizeDemo(),
+      'useEventListener' => _useEventListenerDemo(),
+      'useExternalStore' => _useExternalStoreDemo(),
       'useFuture' => _useFutureDemo(context),
+      'useHover' => _useHoverDemo(),
+      'useImperativeHandle' => _useImperativeHandleDemo(),
+      'useInherited' => _useInheritedDemo(),
+      'useIntersection' => _useIntersectionDemo(),
+      'useInterval' => _useIntervalDemo(),
       'useIsMounted' => _useIsMountedDemo(),
+      'useLatest' => _useLatestDemo(),
+      'useList' => _useListDemo(),
       'useListenable' => _useListenableDemo(),
       'useListenableSelector' => _useListenableSelectorDemo(),
+      'useMap' => _useMapDemo(),
+      'useMediaQuery' => _useMediaQueryDemo(),
       'useMemoized' => _useMemoizedDemo(),
+      'useMount' => _useMountDemo(),
+      'useMutationObserver' => _useMutationObserverDemo(),
+      'useNodeKey' => _useNodeKeyDemo(),
+      'useOnClickOutside' => _useOnClickOutsideDemo(),
       'useOnDocumentVisibilityChange' => _useOnDocumentVisibilityChangeDemo(),
       'useOnListenableChange' => _useOnListenableChangeDemo(),
+      'useOnMediaQueryChange' => _useOnMediaQueryChangeDemo(),
       'useOnPreferredColorSchemeChange' => _useOnPreferredColorSchemeChangeDemo(),
+      'useOnPreferredMotionChange' => _useOnPreferredMotionChangeDemo(),
       'useOnStreamChange' => _useOnStreamChangeDemo(context),
+      'useOptimistic' => _useOptimisticDemo(),
       'usePostFrameEffect' => _usePostFrameEffectDemo(),
       'usePreferredColorScheme' => _usePreferredColorSchemeDemo(),
+      'usePreferredMotion' => _usePreferredMotionDemo(),
       'usePrevious' => _usePreviousDemo(),
+      'useQueue' => _useQueueDemo(),
       'useReducer' => _useReducerDemo(),
       'useRef' => _useRefDemo(),
+      'useSet' => _useSetDemo(),
       'useState' => _useStateDemo(),
       'useStream' => _useStreamDemo(context),
       'useStreamController' => _useStreamControllerDemo(context),
+      'useTimeout' => _useTimeoutDemo(),
+      'useToggle' => _useToggleDemo(),
+      'useUnmount' => _useUnmountDemo(),
+      'useUpdateEffect' => _useUpdateEffectDemo(),
       'useValueChanged' => _useValueChangedDemo(),
       'useValueListenable' => _useValueListenableDemo(),
       'useValueNotifier' => _useValueNotifierDemo(),
+      'useWindowSize' => _useWindowSizeDemo(),
       _ => _output('Unknown demo: $name'),
     };
   }
@@ -89,6 +153,23 @@ class HookDemo extends StatelessComponent {
     return _row(<Component>[
       _action('Increment custom hook', counter.increment),
       _output('Custom HookState value: ${counter.value}'),
+    ]);
+  }
+
+  Component _useAsyncActionDemo() {
+    final AsyncAction<int, int> action = useAsyncAction<int, int>(
+      initialState: 0,
+      action: (int state, int increment) async {
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+        return state + increment;
+      },
+    );
+    return _row(<Component>[
+      _action('Run async +1', () => unawaited(action.dispatch(1))),
+      _output(
+        'State ${action.state} • ${action.isPending ? 'pending' : 'idle'}'
+        '${action.error == null ? '' : ' • ${action.error}'}',
+      ),
     ]);
   }
 
@@ -110,12 +191,35 @@ class HookDemo extends StatelessComponent {
     return _output('Current hook BuildContext is available in this component.');
   }
 
+  Component _useCounterDemo() {
+    final CounterController counter = useCounter(0);
+    return _row(<Component>[
+      _action('Increment counter', counter.increment),
+      _secondaryAction('Reset', counter.reset),
+      _output('Counter: ${counter.value}'),
+    ]);
+  }
+
   Component _useDebouncedDemo() {
     final ValueNotifier<int> input = useState<int>(0);
     final int? settled = useDebounced<int>(input.value, const Duration(milliseconds: 350));
     return _row(<Component>[
       _action('Change input', () => input.value++),
       _output('Input ${input.value} • settled ${settled ?? 'waiting…'}'),
+    ]);
+  }
+
+  Component _useDisposableDemo() {
+    final ValueNotifier<int> key = useState<int>(0);
+    final ObjectRef<int> disposals = useRef<int>(0);
+    final _DemoResource resource = useDisposable<_DemoResource>(
+      () => _DemoResource(key.value + 1),
+      (_) => disposals.value++,
+      <Object?>[key.value],
+    );
+    return _row(<Component>[
+      _action('Replace resource', () => key.value++),
+      _output('Resource #${resource.id} • disposed ${disposals.value}'),
     ]);
   }
 
@@ -142,6 +246,58 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useEffectOnceDemo() {
+    final ObjectRef<int> runs = useRef<int>(0);
+    final ValueNotifier<int> rebuilds = useState<int>(0);
+    useEffectOnce(() {
+      runs.value++;
+      return null;
+    });
+    return _row(<Component>[
+      _action('Rebuild', () => rebuilds.value++),
+      _output('Effect-once runs ${runs.value} • rebuilds ${rebuilds.value}'),
+    ]);
+  }
+
+  Component _useElementSizeDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>(
+      debugLabel: 'size-demo',
+    );
+    final hooks_web.ElementSize? size = hooks_web.useElementSize(key);
+    return _row(<Component>[
+      div(key: key, classes: 'hook-demo-measure-target', <Component>[Component.text('Measured target')]),
+      _output(size == null ? 'Waiting for measurement…' : '${size.width.round()} × ${size.height.round()} px'),
+    ]);
+  }
+
+  Component _useEventListenerDemo() {
+    final ValueNotifier<int> clicks = useState<int>(0);
+    hooks_web.useEventListener<web.PointerEvent>(
+      'pointerdown',
+      (_) => clicks.value++,
+    );
+    return _row(<Component>[
+      _action('Dispatch pointer event', () {}),
+      _output('Window pointer events: ${clicks.value}'),
+    ]);
+  }
+
+  Component _useExternalStoreDemo() {
+    final _DemoExternalStore store = useDisposable<_DemoExternalStore>(
+      _DemoExternalStore.new,
+      (value) => value.dispose(),
+    );
+    final int value = useExternalStore<int>(
+      store.subscribe,
+      () => store.value,
+      getServerSnapshot: () => 0,
+    );
+    return _row(<Component>[
+      _action('Update external store', store.increment),
+      _output('External snapshot: $value'),
+    ]);
+  }
+
   Component _useFutureDemo(BuildContext context) {
     final ValueNotifier<int> request = useState<int>(0);
     final Future<String>? future = useMemoized<Future<String>?>(() {
@@ -159,9 +315,74 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useHoverDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
+    final bool? hovering = hooks_web.useHover(key);
+    return _row(<Component>[
+      div(key: key, classes: 'hook-demo-hover-target', <Component>[Component.text('Hover me')]),
+      _output(hovering == null ? 'Waiting for browser…' : 'Hovering: $hovering'),
+    ]);
+  }
+
+  Component _useImperativeHandleDemo() {
+    final ObjectRef<_DemoHandle?> target = useRef<_DemoHandle?>(null);
+    final ValueNotifier<int> key = useState<int>(0);
+    useImperativeHandle<_DemoHandle>(target, () => _DemoHandle(key.value + 1), <Object?>[key.value]);
+    return _row(<Component>[
+      _action('Replace handle', () => key.value++),
+      _output('Exposed handle #${target.value?.id ?? 'none'}'),
+    ]);
+  }
+
+  Component _useInheritedDemo() {
+    useInherited<_DemoInherited>();
+    return _output('Typed inherited-component lookup is active.');
+  }
+
+  Component _useIntersectionDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
+    final hooks_web.IntersectionSnapshot? snapshot = hooks_web.useIntersection(key);
+    return _row(<Component>[
+      div(key: key, classes: 'hook-demo-measure-target', <Component>[Component.text('Observed target')]),
+      _output(
+        snapshot == null
+            ? 'Waiting for intersection…'
+            : 'Visible ${snapshot.isIntersecting} • ${(snapshot.ratio * 100).round()}%',
+      ),
+    ]);
+  }
+
+  Component _useIntervalDemo() {
+    final ValueNotifier<int> ticks = useState<int>(0);
+    final ToggleController running = useToggle(false);
+    useInterval(() => ticks.value++, running.value ? const Duration(milliseconds: 500) : null);
+    return _row(<Component>[
+      _action(running.value ? 'Pause interval' : 'Start interval', running.toggle),
+      _output('Interval ticks: ${ticks.value}'),
+    ]);
+  }
+
   Component _useIsMountedDemo() {
     final IsMounted isMounted = useIsMounted();
     return _output('Mounted now: ${isMounted()}');
+  }
+
+  Component _useLatestDemo() {
+    final ValueNotifier<int> value = useState<int>(0);
+    final ObjectRef<int> latest = useLatest<int>(value.value);
+    return _row(<Component>[
+      _action('Update latest value', () => value.value++),
+      _output('Stable reference contains ${latest.value}'),
+    ]);
+  }
+
+  Component _useListDemo() {
+    final ListController<int> list = useList<int>(<int>[1]);
+    return _row(<Component>[
+      _action('Append item', () => list.add(list.value.length + 1)),
+      _secondaryAction('Clear', list.clear),
+      _output('List: ${list.value.join(', ')}'),
+    ]);
   }
 
   Component _useListenableDemo() {
@@ -184,6 +405,19 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useMapDemo() {
+    final MapController<String, int> map = useMap<String, int>(<String, int>{'clicks': 0});
+    return _row(<Component>[
+      _action('Update entry', () => map.setValue('clicks', (map.value['clicks'] ?? 0) + 1)),
+      _output('Map: ${map.value}'),
+    ]);
+  }
+
+  Component _useMediaQueryDemo() {
+    final MediaQueryMatch match = useMediaQuery('(min-width: 700px)');
+    return _output('Minimum 700px: ${match.name}');
+  }
+
   Component _useMemoizedDemo() {
     final ValueNotifier<int> key = useState<int>(0);
     final ObjectRef<int> creations = useRef<int>(0);
@@ -194,6 +428,56 @@ class HookDemo extends StatelessComponent {
     return _row(<Component>[
       _action('Change key', () => key.value++),
       _output('Key ${key.value} • memoized resource #$resource'),
+    ]);
+  }
+
+  Component _useMountDemo() {
+    final ObjectRef<int> mounts = useRef<int>(0);
+    final ValueNotifier<int> rebuilds = useState<int>(0);
+    useMount(() => mounts.value++);
+    return _row(<Component>[
+      _action('Rebuild', () => rebuilds.value++),
+      _output('Mount callback ran ${mounts.value} time • rebuilds ${rebuilds.value}'),
+    ]);
+  }
+
+  Component _useMutationObserverDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
+    final ValueNotifier<int> mutations = useState<int>(0);
+    final ValueNotifier<int> children = useState<int>(1);
+    hooks_web.useMutationObserver(key, (records) => mutations.value += records.length);
+    return _row(<Component>[
+      div(
+        key: key,
+        <Component>[
+          for (var index = 0; index < children.value; index++) span(<Component>[Component.text('•')]),
+        ],
+      ),
+      _action('Mutate children', () => children.value++),
+      _output('Observed mutation batches: ${mutations.value}'),
+    ]);
+  }
+
+  Component _useNodeKeyDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>(
+      debugLabel: 'node-key-demo',
+    );
+    final ValueNotifier<int> checks = useState<int>(0);
+    return _row(<Component>[
+      div(key: key, <Component>[Component.text('Keyed browser node')]),
+      _action('Check node', () => checks.value++),
+      _output('Node attached: ${key.currentNode != null} • checks ${checks.value}'),
+    ]);
+  }
+
+  Component _useOnClickOutsideDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
+    final ValueNotifier<int> outside = useState<int>(0);
+    hooks_web.useOnClickOutside(key, (_) => outside.value++);
+    return _row(<Component>[
+      div(key: key, classes: 'hook-demo-hover-target', <Component>[Component.text('Inside area')]),
+      _action('Click outside area', () {}),
+      _output('Outside pointer events: ${outside.value}'),
     ]);
   }
 
@@ -217,6 +501,16 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useOnMediaQueryChangeDemo() {
+    final ValueNotifier<int> changes = useState<int>(0);
+    final ObjectRef<String> transition = useRef<String>('No changes yet');
+    useOnMediaQueryChange('(min-width: 700px)', (previous, current) {
+      transition.value = '${previous.name} → ${current.name}';
+      changes.value++;
+    });
+    return _output('Media changes ${changes.value} • ${transition.value}. Resize the window.');
+  }
+
   Component _useOnPreferredColorSchemeChangeDemo() {
     final ValueNotifier<int> changes = useState<int>(0);
     final ObjectRef<String> transition = useRef<String>('No changes yet');
@@ -225,6 +519,16 @@ class HookDemo extends StatelessComponent {
       changes.value++;
     });
     return _output('Scheme changes ${changes.value} • ${transition.value}. Change your OS theme to trigger it.');
+  }
+
+  Component _useOnPreferredMotionChangeDemo() {
+    final ValueNotifier<int> changes = useState<int>(0);
+    final ObjectRef<String> transition = useRef<String>('No changes yet');
+    useOnPreferredMotionChange((previous, current) {
+      transition.value = '${previous.name} → ${current.name}';
+      changes.value++;
+    });
+    return _output('Motion changes ${changes.value} • ${transition.value}');
   }
 
   Component _useOnStreamChangeDemo(BuildContext context) {
@@ -238,6 +542,23 @@ class HookDemo extends StatelessComponent {
     return _row(<Component>[
       _action('Emit event', () => controller.add(latest.value + 1)),
       _output('Latest stream event: ${latest.value}'),
+    ]);
+  }
+
+  Component _useOptimisticDemo() {
+    final OptimisticState<int, int> optimistic = useOptimistic<int, int>(
+      0,
+      (state, update) => state + update,
+    );
+    return _row(<Component>[
+      _action('Add optimistic +1', () {
+        final handle = optimistic.add(1);
+        Future<void>.delayed(const Duration(milliseconds: 350), () {
+          if (handle.isPending) handle.commit(optimistic.value);
+        });
+      }),
+      _secondaryAction('Rollback all', optimistic.reset),
+      _output('Optimistic value ${optimistic.value} • pending ${optimistic.pendingCount}'),
     ]);
   }
 
@@ -259,12 +580,28 @@ class HookDemo extends StatelessComponent {
     return _output('Preferred color scheme: ${scheme.name}');
   }
 
+  Component _usePreferredMotionDemo() {
+    final PreferredMotion motion = usePreferredMotion();
+    return _output('Preferred motion: ${motion.name}');
+  }
+
   Component _usePreviousDemo() {
     final ValueNotifier<int> current = useState<int>(0);
     final int? previous = usePrevious<int>(current.value);
     return _row(<Component>[
       _action('Advance value', () => current.value++),
       _output('Current ${current.value} • previous ${previous ?? 'none'}'),
+    ]);
+  }
+
+  Component _useQueueDemo() {
+    final QueueController<int> queue = useQueue<int>(<int>[1]);
+    return _row(<Component>[
+      _action('Enqueue', () => queue.enqueue(queue.length + 1)),
+      _secondaryAction('Dequeue', () {
+        if (queue.isNotEmpty) queue.dequeue();
+      }),
+      _output('Queue: ${queue.value.join(' → ')}'),
     ]);
   }
 
@@ -289,6 +626,15 @@ class HookDemo extends StatelessComponent {
         repaint.value++;
       }),
       _output('Ref ${ref.value} • repaint ${repaint.value}'),
+    ]);
+  }
+
+  Component _useSetDemo() {
+    final SetController<int> set = useSet<int>(<int>{1});
+    return _row(<Component>[
+      _action('Add unique value', () => set.add(set.value.length + 1)),
+      _secondaryAction('Clear', set.clear),
+      _output('Set: ${set.value.join(', ')}'),
     ]);
   }
 
@@ -329,6 +675,64 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useTimeoutDemo() {
+    final ValueNotifier<int> generation = useState<int>(0);
+    final ValueNotifier<String> status = useState<String>('scheduled');
+    useTimeout(
+      () => status.value = 'completed #${generation.value}',
+      Duration(milliseconds: 600 + generation.value),
+    );
+    return _row(<Component>[
+      _action('Restart timeout', () {
+        generation.value++;
+        status.value = 'scheduled #${generation.value}';
+      }),
+      _output('Timeout: ${status.value}'),
+    ]);
+  }
+
+  Component _useToggleDemo() {
+    final ToggleController toggle = useToggle();
+    return _row(<Component>[
+      _action('Toggle', toggle.toggle),
+      _output('Toggle: ${toggle.value}'),
+    ]);
+  }
+
+  Component _useUnmountDemo() {
+    final ToggleController childMounted = useToggle(true);
+    final ValueNotifier<int> cleanups = useState<int>(0);
+    final IsMounted isMounted = useIsMounted();
+    return _row(<Component>[
+      _action(childMounted.value ? 'Unmount child' : 'Mount child', childMounted.toggle),
+      if (childMounted.value)
+        HookBuilder(
+          builder: (context) {
+            useUnmount(() {
+              scheduleMicrotask(() {
+                if (isMounted()) cleanups.value++;
+              });
+            });
+            return Component.text('Child mounted');
+          },
+        ),
+      _output('Unmount cleanups: ${cleanups.value}'),
+    ]);
+  }
+
+  Component _useUpdateEffectDemo() {
+    final ValueNotifier<int> dependency = useState<int>(0);
+    final ObjectRef<int> runs = useRef<int>(0);
+    useUpdateEffect(() {
+      runs.value++;
+      return null;
+    }, <Object?>[dependency.value]);
+    return _row(<Component>[
+      _action('Change dependency', () => dependency.value++),
+      _output('Dependency ${dependency.value} • update-only runs ${runs.value}'),
+    ]);
+  }
+
   Component _useValueChangedDemo() {
     final ValueNotifier<int> current = useState<int>(0);
     final String? result = useValueChanged<int, String>(
@@ -357,6 +761,11 @@ class HookDemo extends StatelessComponent {
       _action('Update owned notifier', () => notifier.value++),
       _output('Owned notifier value: $value'),
     ]);
+  }
+
+  Component _useWindowSizeDemo() {
+    final hooks_web.WindowSize? size = hooks_web.useWindowSize();
+    return _output(size == null ? 'Waiting for viewport…' : 'Viewport ${size.width.round()} × ${size.height.round()}');
   }
 
   Component _row(List<Component> children) => div(classes: 'hook-demo-row', children);
@@ -429,7 +838,45 @@ class HookDemo extends StatelessComponent {
       radius: BorderRadius.circular(Unit.rem(0.5)),
       backgroundColor: ContentColors.background,
     ),
+    css('.hook-demo-measure-target, .hook-demo-hover-target').styles(
+      padding: Padding.symmetric(horizontal: Unit.rem(0.75), vertical: Unit.rem(0.55)),
+      border: Border.all(color: ContentColors.primary, width: Unit.pixels(1)),
+      radius: BorderRadius.circular(Unit.rem(0.5)),
+    ),
   ];
+}
+
+final class _DemoResource {
+  const _DemoResource(this.id);
+
+  final int id;
+}
+
+final class _DemoHandle {
+  const _DemoHandle(this.id);
+
+  final int id;
+}
+
+final class _DemoExternalStore extends ChangeNotifier {
+  int value = 0;
+
+  Dispose subscribe(VoidCallback listener) {
+    addListener(listener);
+    return () => removeListener(listener);
+  }
+
+  void increment() {
+    value++;
+    notifyListeners();
+  }
+}
+
+final class _DemoInherited extends InheritedComponent {
+  const _DemoInherited({required super.child});
+
+  @override
+  bool updateShouldNotify(covariant _DemoInherited oldComponent) => false;
 }
 
 abstract interface class _CustomCounter {

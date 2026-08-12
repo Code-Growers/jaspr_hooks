@@ -9,6 +9,18 @@ description: Model state transitions with a synchronous reducer and typed action
 
 Initialization applies `initialAction` to `initialState`. Dispatch synchronously runs the latest reducer and rebuilds only when the next state differs from the current state.
 
+## Signature and parameters
+
+```dart
+Store<StateT, ActionT> useReducer<StateT, ActionT>(
+  Reducer<StateT, ActionT> reducer, {
+  required StateT initialState,
+  required ActionT initialAction,
+})
+```
+
+The reducer computes each transition. Initialization calls it once with `initialState` and `initialAction`; the stable returned store exposes `state` and `dispatch`.
+
 ## Usage
 
 ```dart
@@ -40,11 +52,18 @@ class Counter extends HookComponent {
 
 <HookDemo name="useReducer"/>
 
+## Ownership and lifecycle
+
+The hook owns the store state and stable dispatch method but not objects embedded in the state. It uses the latest reducer after rebuilds and requests a rebuild only when the next state differs by `!=`.
+
 ## Server rendering
 
 The initial reducer call occurs during SSR, so it must be deterministic and side-effect free. User actions normally dispatch after hydration.
 
+## Common mistakes
+
+Reducers must not perform effects or mutate existing state in place. Do not expect later `initialState` or `initialAction` changes to reinitialize a preserved store; dispatch an explicit reset action instead.
+
 ## Related APIs
 
 Use `useState` for direct, local values. Reducers are clearer when several action types share transition logic.
-

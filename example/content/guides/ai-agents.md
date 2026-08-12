@@ -16,9 +16,10 @@ The rendered AI-agent guide is available at:
 https://code-growers.github.io/jaspr_hooks/guides/ai-agents/
 
 Follow that document's hook rules, SSR/hydration contracts, ownership rules,
-and per-hook API guidance. Use package:jaspr_hooks/jaspr_hooks.dart in native
-Jaspr components; do not import flutter_hooks or add Flutter. Confirm the app
-uses Jaspr >=0.23.3 <0.24.0 and Dart >=3.8.0 <4.0.0, run
+and per-hook API guidance. Use package:jaspr_hooks/jaspr_hooks.dart for the
+universal API, or package:jaspr_hooks/web.dart with package:universal_web/web.dart
+for DOM integrations. Do not import flutter_hooks or add Flutter. Confirm the
+app uses Jaspr >=0.23.3 <0.24.0 and Dart >=3.8.0 <4.0.0, run
 `dart pub add jaspr_hooks`, and validate the result with formatting, analysis,
 and relevant tests. Summarize every file changed and any behavior that must
 remain client-only.
@@ -30,9 +31,26 @@ The machine-readable reference is available at [llms.txt](https://code-growers.g
 
 An agent should read `llms.txt` before proposing a migration or generating code. It should then inspect the application's existing Jaspr and Dart constraints, choose the smallest appropriate hook host, and preserve server-rendered output.
 
-Do not ask an agent to translate Flutter widget code mechanically. `jaspr_hooks` targets Jaspr's native component tree, and intentionally excludes Flutter animation, focus, scroll, text-editing, Material, and controller hooks.
+Do not ask an agent to translate Flutter widget code mechanically. `jaspr_hooks` targets Jaspr's native component tree and intentionally excludes Flutter animation, focus, scroll, text-editing, Material, and Flutter-specific controller integrations. Its Dart convenience controllers are native `jaspr_hooks` APIs.
 
 For deeper examples, each API entry in `llms.txt` links to its rendered hook page. The [human-oriented hook catalog](hooks) contains the same public API set with runnable demonstrations.
+
+## Choosing an entry point
+
+Agents should use the universal import for state, lifecycle, async, action, listenable, and browser-preference hooks:
+
+```dart
+import 'package:jaspr_hooks/jaspr_hooks.dart';
+```
+
+DOM keys, native events, element observers, and viewport hooks use the web entry point instead. It re-exports the universal API, so importing both is unnecessary:
+
+```dart
+import 'package:jaspr_hooks/web.dart';
+import 'package:universal_web/web.dart' as web;
+```
+
+An agent must preserve the documented `null` or `unknown` SSR fallback for every browser-facing hook. It should supply `getServerSnapshot` to `useExternalStore`, keep actions in client event handlers, and use controller mutation methods instead of modifying collection views.
 
 ## Keeping agent context current
 

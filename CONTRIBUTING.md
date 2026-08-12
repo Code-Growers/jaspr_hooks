@@ -44,7 +44,7 @@ The first pub.dev release is deliberately manual. Before publishing it:
 3. Recheck the package name immediately before publishing with
    `dart run tool/release_preflight.dart --check-name-available`.
 4. Run every CI gate, `dart run tool/verify_publish_dry_run.dart`, and then
-   publish `0.1.0-dev.2` manually with `dart pub publish`.
+   publish `0.1.0-dev.3` manually with `dart pub publish`.
 5. Validate the preview in multiple Jaspr applications before promoting it to
    `0.1.0`.
 

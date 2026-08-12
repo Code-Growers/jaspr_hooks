@@ -1,3 +1,18 @@
+# 0.1.0-dev.3
+
+- Added foundation hooks for latest values, owned resources, external stores,
+  inherited components, imperative handles, timeouts, and intervals.
+- Added async actions with configurable concurrency and explicit optimistic
+  state transactions.
+- Added toggle, counter, collection, queue, mount, unmount, and update-effect
+  convenience hooks.
+- Added hydration-safe media query and preferred-motion hooks.
+- Added the optional `package:jaspr_hooks/web.dart` entry point with node keys,
+  element and viewport sizing, intersection and mutation observers, event
+  listeners, click-outside detection, and hover state.
+- Expanded the interactive catalog, AI-agent reference, semantic tests, and
+  production-browser coverage to all 57 exported hooks.
+
 # 0.1.0-dev.2
 
 - Improved documentation layout spacing at the end of every page.

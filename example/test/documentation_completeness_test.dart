@@ -20,6 +20,19 @@ void main() {
     );
     expect(HookDemo.supportedNames, catalogNames);
     expect(_exportedUseApis(packageRoot), catalogNames);
+
+    final String e2eCatalog = File(
+      '${packageRoot.path}/e2e/tests/catalog.ts',
+    ).readAsStringSync();
+    final Map<String, String> e2ePages = <String, String>{
+      for (final RegExpMatch match in RegExp(
+        r"api:\s*'([^']+)'\s*,\s*slug:\s*'([^']+)'",
+      ).allMatches(e2eCatalog))
+        match.group(1)!: match.group(2)!,
+    };
+    expect(e2ePages, <String, String>{
+      for (final HookDoc hook in hookCatalog) hook.name: hook.slug,
+    });
   });
 
   for (final HookDoc hook in hookCatalog) {
@@ -37,6 +50,15 @@ void main() {
       );
       expect(markdown, contains('```dart'));
       expect(markdown, contains('<HookDemo name="${hook.name}"/>'));
+      expect(markdown, contains('## Signature'), reason: '${hook.name} must document its public signature.');
+      expect(
+        markdown,
+        anyOf(contains('## Ownership'), contains('## Lifecycle'), contains('## Rebasing')),
+        reason: '${hook.name} must document ownership and cleanup.',
+      );
+      expect(markdown, contains('## Server rendering'));
+      expect(markdown, contains('## Common mistakes'));
+      expect(markdown, contains('## Related APIs'));
       expect(
         RegExp(r'^## ', multiLine: true).allMatches(markdown).length,
         greaterThanOrEqualTo(4),
@@ -78,6 +100,10 @@ void main() {
 
     final String guide = agentGuide.readAsStringSync();
     final String llms = llmsFile.readAsStringSync();
+    final String readme = File('${packageRoot.path}/README.md').readAsStringSync();
+    final String gettingStarted = File(
+      '${exampleRoot.path}/content/guides/getting-started.md',
+    ).readAsStringSync();
     final Map<String, String> pubspec = _releaseMetadata(
       File('${packageRoot.path}/pubspec.yaml').readAsLinesSync(),
     );
@@ -103,12 +129,29 @@ void main() {
     expect(llms, contains('Current package version: ${pubspec['version']}'));
     expect(llms, contains('Dart constraint: ${pubspec['sdk']}'));
     expect(llms, contains('Jaspr constraint: ${pubspec['jaspr']}'));
+    expect(readme, contains('jaspr_hooks: ^${pubspec['version']}'));
+    expect(readme, contains('package:jaspr_hooks/web.dart'));
+    expect(gettingStarted, contains('jaspr_hooks: ^${pubspec['version']}'));
+    expect(aiInstallPrompt, contains('Jaspr ${pubspec['jaspr']}'));
+    expect(aiInstallPrompt, contains('Dart ${pubspec['sdk']}'));
+    expect(aiInstallPrompt, contains('package:jaspr_hooks/web.dart'));
+    expect(aiInstallPrompt, contains('package:universal_web/web.dart'));
 
     for (final HookDoc hook in hookCatalog) {
+      expect(readme, contains('`${hook.name}`'), reason: 'README does not list ${hook.name}.');
       expect(
         llms,
-        contains(hook.name),
+        contains('### ${hook.name}\n'),
         reason: 'llms.txt does not document ${hook.name}.',
+      );
+      expect(
+        RegExp('^### ${RegExp.escape(hook.name)}\$', multiLine: true).allMatches(llms),
+        hasLength(1),
+        reason: 'llms.txt must contain exactly one canonical ${hook.name} entry.',
+      );
+      expect(
+        llms,
+        contains('Docs: https://code-growers.github.io/jaspr_hooks/hooks/${hook.slug}/'),
       );
     }
   });
@@ -205,7 +248,6 @@ Directory _findExampleRoot() {
 }
 
 Set<String> _exportedUseApis(Directory packageRoot) {
-  final File library = File('${packageRoot.path}/lib/jaspr_hooks.dart');
   final RegExp exportPattern = RegExp(r"export '([^']+)';");
   final RegExp declarationPattern = RegExp(
     r'^\S[^\n=;{}]*?\b(use(?:[A-Z][A-Za-z0-9_]*)?)'
@@ -214,10 +256,13 @@ Set<String> _exportedUseApis(Directory packageRoot) {
   );
 
   final Set<String> names = <String>{};
-  for (final RegExpMatch export in exportPattern.allMatches(library.readAsStringSync())) {
-    final File source = File('${packageRoot.path}/lib/${export.group(1)}');
-    for (final RegExpMatch declaration in declarationPattern.allMatches(source.readAsStringSync())) {
-      names.add(declaration.group(1)!);
+  for (final String entrypoint in <String>['jaspr_hooks.dart', 'web.dart']) {
+    final File library = File('${packageRoot.path}/lib/$entrypoint');
+    for (final RegExpMatch export in exportPattern.allMatches(library.readAsStringSync())) {
+      final File source = File('${packageRoot.path}/lib/${export.group(1)}');
+      for (final RegExpMatch declaration in declarationPattern.allMatches(source.readAsStringSync())) {
+        names.add(declaration.group(1)!);
+      }
     }
   }
   return names;

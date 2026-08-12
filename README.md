@@ -11,7 +11,7 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.1.0-dev.2` is a preview. The API is intentionally being validated in real
+> `0.1.0-dev.3` is a preview. The API is intentionally being validated in real
 > Jaspr applications before `0.1.0`.
 
 ## Install
@@ -19,7 +19,7 @@ HTML on the server and in the browser.
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.0-dev.2
+  jaspr_hooks: ^0.1.0-dev.3
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
@@ -50,7 +50,7 @@ Hooks must be called unconditionally and in the same order on every build.
 Reusable custom hooks are ordinary functions whose names begin with `use`:
 
 ```dart
-ValueNotifier<int> useCounter([int initialValue = 0]) {
+ValueNotifier<int> useTrackedCount([int initialValue = 0]) {
   return useState(initialValue);
 }
 ```
@@ -63,11 +63,29 @@ For lower-level lifecycle objects, extend `Hook<R>` and
 | Category | Hooks |
 | --- | --- |
 | Framework | `use`, `useContext` |
+| Foundation | `useLatest`, `useDisposable`, `useExternalStore`, `useInherited`, `useImperativeHandle`, `useTimeout`, `useInterval` |
 | Primitives | `useState`, `useEffect`, `usePostFrameEffect`, `useMemoized`, `useCallback`, `useRef`, `useValueChanged` |
 | Lifecycle/state | `usePrevious`, `useReducer`, `useIsMounted`, `useDebounced` |
+| Convenience state | `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, `useQueue`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect` |
 | Async | `useFuture`, `useStream`, `useStreamController`, `useOnStreamChange` |
+| Actions | `useAsyncAction`, `useOptimistic` |
 | Listenables | `useListenable`, `useListenableSelector`, `useValueNotifier`, `useValueListenable`, `useOnListenableChange` |
-| Browser lifecycle | `useDocumentVisibility`, `useOnDocumentVisibilityChange`, `usePreferredColorScheme`, `useOnPreferredColorSchemeChange` |
+| Browser lifecycle | `useDocumentVisibility`, `useOnDocumentVisibilityChange`, `usePreferredColorScheme`, `useOnPreferredColorSchemeChange`, `useMediaQuery`, `useOnMediaQueryChange`, `usePreferredMotion`, `useOnPreferredMotionChange` |
+| Browser DOM | `useNodeKey`, `useElementSize`, `useWindowSize`, `useIntersection`, `useEventListener`, `useOnClickOutside`, `useHover`, `useMutationObserver` |
+
+The universal entry point contains every hook except direct DOM integrations:
+
+```dart
+import 'package:jaspr_hooks/jaspr_hooks.dart';
+```
+
+When a component needs DOM node, observer, or native-event types, import the
+web entry point instead. It re-exports the universal API:
+
+```dart
+import 'package:jaspr_hooks/web.dart';
+import 'package:universal_web/web.dart' as web;
+```
 
 Use `HookComponent` in place of `StatelessComponent`,
 `StatefulHookComponent` when a Jaspr `State` is still useful, or `HookBuilder`
@@ -84,8 +102,11 @@ tree in the browser. Hook state is therefore not serialized automatically.
 | `usePostFrameEffect` | Effect is skipped | Runs after the frame |
 | `useFuture`, `useStream`, `useOnStreamChange` | Source must be `null` | Subscribes normally |
 | Listenable hooks | Read initial value, attach no listener | Attach listeners |
-| `useDebounced` | Returns `null`, creates no timer | Debounces normally |
-| Browser lifecycle hooks | Return `unknown` | Synchronize after the first frame |
+| `useDebounced`, `useTimeout`, `useInterval` | Create no timer | Run timers normally |
+| `useExternalStore` | Requires `getServerSnapshot` | Hydrates from the server snapshot, then subscribes |
+| Async and optimistic actions | Read deterministic initial state; do not mutate | Dispatch and mutate from event handlers |
+| Browser lifecycle value hooks | Return `unknown` | Synchronize after the first frame |
+| Browser DOM value hooks | Return `null` or an unattached key | Attach after the first frame |
 
 Pass async sources conditionally:
 

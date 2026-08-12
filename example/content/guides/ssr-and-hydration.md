@@ -7,7 +7,7 @@ Jaspr creates one component tree while pre-rendering and another while hydrating
 
 ## Client-only effects
 
-`useEffect`, `usePostFrameEffect`, and `useDebounced` stay inactive during server/static rendering. Browser lifecycle hooks return an `unknown` value until their first client frame.
+`useEffect`, `usePostFrameEffect`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect`, `useTimeout`, `useInterval`, and `useDebounced` stay inactive during server/static rendering. Browser lifecycle hooks return an `unknown` value until their first client frame.
 
 ```dart
 final visibility = useDocumentVisibility();
@@ -32,6 +32,39 @@ final snapshot = useFuture(future, initialData: serverUser);
 ```
 
 Use Jaspr preloading, synchronized state, serialized `@client` properties, or `jaspr_riverpod` for data that must appear in server HTML.
+
+## External stores
+
+`useExternalStore` requires a deterministic `getServerSnapshot` during SSR. Supply it in the browser as well to preserve that exact value through the first hydration build. The hook attaches the live subscription and switches to `getSnapshot` after the first frame.
+
+```dart
+final session = useExternalStore<SessionSnapshot>(
+  sessionStore.subscribe,
+  sessionStore.snapshot,
+  getServerSnapshot: () => serializedSession,
+);
+```
+
+Snapshots should be immutable. Server and client code must agree on equality and on the meaning of the serialized baseline.
+
+## Actions and local controllers
+
+`useAsyncAction` and `useOptimistic` expose their deterministic initial or authoritative state during SSR. `AsyncAction.dispatch` and optimistic mutation methods throw there. Dispatch, add, commit, rollback, and reset from browser event handlers rather than during build.
+
+Convenience controllers such as `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, and `useQueue` initialize universally. Their server instance is not transferred to the browser. The same applies to references, inherited dependencies, imperative handles, reducers, and resources created by `useDisposable`.
+
+## Browser DOM hooks
+
+DOM integration lives in `package:jaspr_hooks/web.dart`. `useNodeKey` can create a stable key on the server, but its node is unattached. `useElementSize`, `useWindowSize`, `useIntersection`, and `useHover` return `null` until client attachment, while event and observer hooks attach nothing on the server.
+
+Keep a deterministic fallback in the initial markup:
+
+```dart
+final viewport = useWindowSize();
+return text(viewport == null ? 'Viewport unavailable' : '${viewport.width}px');
+```
+
+Prefer CSS for visual-only responsive behavior. Use `useMediaQuery` when application behavior needs a query value; it returns `MediaQueryMatch.unknown` through the first hydration build.
 
 ## Deterministic initializers
 

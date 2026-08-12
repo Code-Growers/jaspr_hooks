@@ -273,6 +273,46 @@ test('preferred color scheme callback receives previous and current states', asy
   await expect(output).toContainText(/dark → light/i);
 });
 
+test('media query hooks follow viewport changes', async ({page}) => {
+  await page.setViewportSize({width: 900, height: 700});
+  await page.goto('hooks/use-media-query/', {waitUntil: 'networkidle'});
+  const valueOutput = page.getByTestId('hook-output').first();
+  await expect(valueOutput).toContainText(/matches/i);
+
+  await page.setViewportSize({width: 390, height: 700});
+  await expect(valueOutput).toContainText(/doesNotMatch/i);
+
+  await page.setViewportSize({width: 900, height: 700});
+  await page.goto('hooks/use-on-media-query-change/', {
+    waitUntil: 'networkidle',
+  });
+  const callbackOutput = page.getByTestId('hook-output').first();
+  await expect(callbackOutput).toContainText(/no changes yet/i);
+
+  await page.setViewportSize({width: 390, height: 700});
+  await expect(callbackOutput).toContainText(/matches → doesNotMatch/i);
+});
+
+test('preferred motion hooks follow reduced-motion changes', async ({page}) => {
+  await page.emulateMedia({reducedMotion: 'no-preference'});
+  await page.goto('hooks/use-preferred-motion/', {waitUntil: 'networkidle'});
+  const valueOutput = page.getByTestId('hook-output').first();
+  await expect(valueOutput).toContainText(/noPreference/i);
+
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await expect(valueOutput).toContainText(/reduce/i);
+
+  await page.emulateMedia({reducedMotion: 'no-preference'});
+  await page.goto('hooks/use-on-preferred-motion-change/', {
+    waitUntil: 'networkidle',
+  });
+  const callbackOutput = page.getByTestId('hook-output').first();
+  await expect(callbackOutput).toContainText(/no changes yet/i);
+
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await expect(callbackOutput).toContainText(/noPreference → reduce/i);
+});
+
 test('document visibility reacts to browser visibility changes', async ({page}) => {
   await page.goto('hooks/use-document-visibility/', {waitUntil: 'networkidle'});
   const output = page.getByTestId('hook-output').first();

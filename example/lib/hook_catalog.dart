@@ -2,11 +2,15 @@ library;
 
 enum HookCategory {
   framework('Framework'),
+  foundation('Foundation'),
   primitives('Primitives'),
   state('Lifecycle & state'),
+  convenience('Convenience state'),
   async('Async'),
+  actions('Actions'),
   listenables('Listenables'),
-  browser('Browser lifecycle');
+  browser('Browser lifecycle'),
+  web('Browser DOM');
 
   const HookCategory(this.label);
 
@@ -33,10 +37,14 @@ final class HookDoc {
 
   String get testFile => switch (category) {
     HookCategory.framework => 'test/framework_test.dart',
+    HookCategory.foundation => 'test/foundation_hooks_test.dart',
     HookCategory.primitives || HookCategory.state => 'test/primitives_test.dart',
+    HookCategory.convenience => 'test/convenience_test.dart',
     HookCategory.async => 'test/async_test.dart',
+    HookCategory.actions => 'test/actions_test.dart',
     HookCategory.listenables => 'test/listenable_test.dart',
     HookCategory.browser => 'test/browser_lifecycle_test.dart',
+    HookCategory.web => 'test/web_hooks_browser_test.dart',
   };
 }
 
@@ -52,6 +60,48 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     slug: 'use-context',
     category: HookCategory.framework,
     summary: 'Returns the BuildContext of the currently building hook component.',
+  ),
+  HookDoc(
+    name: 'useLatest',
+    slug: 'use-latest',
+    category: HookCategory.foundation,
+    summary: 'Keeps the latest value in a stable reference without rebuilding.',
+  ),
+  HookDoc(
+    name: 'useDisposable',
+    slug: 'use-disposable',
+    category: HookCategory.foundation,
+    summary: 'Creates, owns, and disposes a resource with keyed identity.',
+  ),
+  HookDoc(
+    name: 'useExternalStore',
+    slug: 'use-external-store',
+    category: HookCategory.foundation,
+    summary: 'Subscribes to immutable snapshots from an external store.',
+  ),
+  HookDoc(
+    name: 'useInherited',
+    slug: 'use-inherited',
+    category: HookCategory.foundation,
+    summary: 'Reads and watches the nearest typed Jaspr inherited component.',
+  ),
+  HookDoc(
+    name: 'useImperativeHandle',
+    slug: 'use-imperative-handle',
+    category: HookCategory.foundation,
+    summary: 'Publishes a keyed imperative handle through an ObjectRef.',
+  ),
+  HookDoc(
+    name: 'useTimeout',
+    slug: 'use-timeout',
+    category: HookCategory.foundation,
+    summary: 'Invokes the latest callback once after a client-side delay.',
+  ),
+  HookDoc(
+    name: 'useInterval',
+    slug: 'use-interval',
+    category: HookCategory.foundation,
+    summary: 'Invokes the latest callback repeatedly on a client-side interval.',
   ),
   HookDoc(
     name: 'useState',
@@ -120,6 +170,66 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     summary: 'Publishes a value after it remains unchanged for a duration.',
   ),
   HookDoc(
+    name: 'useToggle',
+    slug: 'use-toggle',
+    category: HookCategory.convenience,
+    summary: 'Owns boolean state with set, toggle, and reset operations.',
+  ),
+  HookDoc(
+    name: 'useCounter',
+    slug: 'use-counter',
+    category: HookCategory.convenience,
+    summary: 'Owns integer state with increment, decrement, set, and reset operations.',
+  ),
+  HookDoc(
+    name: 'useList',
+    slug: 'use-list',
+    category: HookCategory.convenience,
+    summary: 'Owns a list with stable mutation methods and an unmodifiable view.',
+  ),
+  HookDoc(
+    name: 'useMap',
+    slug: 'use-map',
+    category: HookCategory.convenience,
+    summary: 'Owns a map with stable mutation methods and an unmodifiable view.',
+  ),
+  HookDoc(
+    name: 'useSet',
+    slug: 'use-set',
+    category: HookCategory.convenience,
+    summary: 'Owns a set with stable mutation methods and an unmodifiable view.',
+  ),
+  HookDoc(
+    name: 'useQueue',
+    slug: 'use-queue',
+    category: HookCategory.convenience,
+    summary: 'Owns a FIFO queue with enqueue, dequeue, replace, and clear operations.',
+  ),
+  HookDoc(
+    name: 'useEffectOnce',
+    slug: 'use-effect-once',
+    category: HookCategory.convenience,
+    summary: 'Runs an effect once during the first browser-client build.',
+  ),
+  HookDoc(
+    name: 'useMount',
+    slug: 'use-mount',
+    category: HookCategory.convenience,
+    summary: 'Runs a cleanup-free callback once during the first client build.',
+  ),
+  HookDoc(
+    name: 'useUnmount',
+    slug: 'use-unmount',
+    category: HookCategory.convenience,
+    summary: 'Runs the latest callback when the client hook is removed.',
+  ),
+  HookDoc(
+    name: 'useUpdateEffect',
+    slug: 'use-update-effect',
+    category: HookCategory.convenience,
+    summary: 'Runs an effect for client updates while skipping the initial build.',
+  ),
+  HookDoc(
     name: 'useFuture',
     slug: 'use-future',
     category: HookCategory.async,
@@ -142,6 +252,18 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     slug: 'use-on-stream-change',
     category: HookCategory.async,
     summary: 'Runs current callbacks for events from a client Stream.',
+  ),
+  HookDoc(
+    name: 'useAsyncAction',
+    slug: 'use-async-action',
+    category: HookCategory.actions,
+    summary: 'Coordinates user-initiated async state changes and concurrency.',
+  ),
+  HookDoc(
+    name: 'useOptimistic',
+    slug: 'use-optimistic',
+    category: HookCategory.actions,
+    summary: 'Layers reversible optimistic updates over authoritative state.',
   ),
   HookDoc(
     name: 'useListenable',
@@ -196,6 +318,78 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     slug: 'use-on-preferred-color-scheme-change',
     category: HookCategory.browser,
     summary: 'Runs a callback when the preferred color scheme changes.',
+  ),
+  HookDoc(
+    name: 'useMediaQuery',
+    slug: 'use-media-query',
+    category: HookCategory.browser,
+    summary: 'Tracks whether the browser matches an arbitrary media query.',
+  ),
+  HookDoc(
+    name: 'useOnMediaQueryChange',
+    slug: 'use-on-media-query-change',
+    category: HookCategory.browser,
+    summary: 'Runs a callback after an arbitrary media-query result changes.',
+  ),
+  HookDoc(
+    name: 'usePreferredMotion',
+    slug: 'use-preferred-motion',
+    category: HookCategory.browser,
+    summary: 'Tracks the browser preference for reduced motion.',
+  ),
+  HookDoc(
+    name: 'useOnPreferredMotionChange',
+    slug: 'use-on-preferred-motion-change',
+    category: HookCategory.browser,
+    summary: 'Runs a callback when the preferred-motion setting changes.',
+  ),
+  HookDoc(
+    name: 'useNodeKey',
+    slug: 'use-node-key',
+    category: HookCategory.web,
+    summary: 'Creates a stable GlobalNodeKey for browser DOM hooks.',
+  ),
+  HookDoc(
+    name: 'useElementSize',
+    slug: 'use-element-size',
+    category: HookCategory.web,
+    summary: 'Observes the rendered size of a keyed browser element.',
+  ),
+  HookDoc(
+    name: 'useWindowSize',
+    slug: 'use-window-size',
+    category: HookCategory.web,
+    summary: 'Tracks the browser viewport size with optional debouncing.',
+  ),
+  HookDoc(
+    name: 'useIntersection',
+    slug: 'use-intersection',
+    category: HookCategory.web,
+    summary: 'Observes whether and how much a keyed element intersects its root.',
+  ),
+  HookDoc(
+    name: 'useEventListener',
+    slug: 'use-event-listener',
+    category: HookCategory.web,
+    summary: 'Owns a typed native DOM event listener.',
+  ),
+  HookDoc(
+    name: 'useOnClickOutside',
+    slug: 'use-on-click-outside',
+    category: HookCategory.web,
+    summary: 'Runs a callback for pointer presses outside keyed elements.',
+  ),
+  HookDoc(
+    name: 'useHover',
+    slug: 'use-hover',
+    category: HookCategory.web,
+    summary: 'Tracks whether a pointer is hovering a keyed element.',
+  ),
+  HookDoc(
+    name: 'useMutationObserver',
+    slug: 'use-mutation-observer',
+    category: HookCategory.web,
+    summary: 'Observes DOM mutations beneath a keyed node.',
   ),
 ];
 

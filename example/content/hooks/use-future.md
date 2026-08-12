@@ -9,6 +9,18 @@ description: Subscribe to a client Future and expose its AsyncSnapshot.
 
 Memoize the future so ordinary rebuilds do not restart it. When the Future identity changes, `preserveState` keeps the prior data while transitioning; set it to false to reset to the initial snapshot.
 
+## Signature and parameters
+
+```dart
+AsyncSnapshot<T> useFuture<T>(
+  Future<T>? future, {
+  T? initialData,
+  bool preserveState = true,
+})
+```
+
+`future` may be null, `initialData` seeds the snapshot, and `preserveState` controls replacement retention. The hook returns the current `AsyncSnapshot<T>`.
+
 ## Usage
 
 ```dart
@@ -38,9 +50,17 @@ class Profile extends HookComponent {
 
 <HookDemo name="useFuture"/>
 
+## Ownership and lifecycle
+
+The caller owns the Future, which Dart cannot cancel. The hook owns observation, ignores stale completions after source replacement or disposal, and rebuilds for waiting, data, or error transitions.
+
 ## Server rendering
 
 Passing a non-null Future during server rendering throws `StateError`. Pass `null` on the server and use Jaspr preloading, synchronized state, or another server-data mechanism for real SSR data.
+
+## Common mistakes
+
+Do not create a new Future on every build; preserve it with `useMemoized`. Keep the hook call unconditional and select a nullable source per platform. Handle both `snapshot.error` and all connection states.
 
 ## Related APIs
 

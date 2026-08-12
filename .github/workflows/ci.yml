@@ -23,7 +23,12 @@ jobs:
       - run: dart analyze --fatal-infos
       - run: dart test --exclude-tags browser
       - run: dart test .agents/skills/bump-pub-version/scripts/bump_pub_version_test.dart
-      - run: dart test --platform chrome test/browser_lifecycle_test.dart
+      - name: Run browser hook suites
+        run: >-
+          dart test --platform chrome
+          test/browser_lifecycle_test.dart
+          test/media_query_hooks_browser_test.dart
+          test/web_hooks_browser_test.dart
       - run: dart doc --validate-links
       - run: dart run tool/verify_package_layout.dart
 
@@ -41,17 +46,22 @@ jobs:
           fixture="$RUNNER_TEMP/jaspr_hooks_consumer"
           mkdir -p "$fixture/lib"
           package_path="${GITHUB_WORKSPACE//\\//}"
-          printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.8.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n' "$package_path" > "$fixture/pubspec.yaml"
+          printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.8.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n  universal_web: ^1.1.1+1\n' "$package_path" > "$fixture/pubspec.yaml"
           printf "import 'package:jaspr_hooks/jaspr_hooks.dart';\nvoid main() { print(HookComponent); }\n" > "$fixture/lib/main.dart"
           printf '%s\n' \
-            "import 'package:jaspr_hooks/jaspr_hooks.dart';" \
+            "import 'package:jaspr_hooks/web.dart';" \
+            "import 'package:universal_web/web.dart' as web;" \
             '' \
             'void main() {' \
             '  final visibilityHook = useDocumentVisibility;' \
             '  final visibilityChangeHook = useOnDocumentVisibilityChange;' \
             '  final colorSchemeHook = usePreferredColorScheme;' \
             '  final colorSchemeChangeHook = useOnPreferredColorSchemeChange;' \
-            '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook));' \
+            '  final mediaHook = useMediaQuery;' \
+            '  final motionHook = usePreferredMotion;' \
+            '  final nodeKey = useNodeKey<web.Element>;' \
+            '  final windowSizeHook = useWindowSize;' \
+            '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook, mediaHook, motionHook, nodeKey, windowSizeHook));' \
             '}' > "$fixture/lib/web.dart"
           cd "$fixture"
           dart pub get
