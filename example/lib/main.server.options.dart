@@ -9,6 +9,8 @@ import 'package:jaspr_content/components/callout.dart' as _callout;
 import 'package:jaspr_content/components/sidebar_toggle_button.dart'
     as _sidebar_toggle_button;
 import 'package:jaspr_content/components/theme_toggle.dart' as _theme_toggle;
+import 'package:jaspr_hooks_example/components/ai_install_prompt.dart'
+    as _ai_install_prompt;
 import 'package:jaspr_hooks_example/components/hook_demo.dart' as _hook_demo;
 
 /// Default [ServerOptions] for use with your Jaspr project.
@@ -37,6 +39,8 @@ ServerOptions get defaultServerOptions => ServerOptions(
     _theme_toggle.ThemeToggle: ClientTarget<_theme_toggle.ThemeToggle>(
       'jaspr_content:theme_toggle',
     ),
+    _ai_install_prompt.AiInstallPrompt:
+        ClientTarget<_ai_install_prompt.AiInstallPrompt>('ai_install_prompt'),
     _hook_demo.HookDemo: ClientTarget<_hook_demo.HookDemo>(
       'hook_demo',
       params: __hook_demoHookDemo,
@@ -45,6 +49,7 @@ ServerOptions get defaultServerOptions => ServerOptions(
   styles: () => [
     ..._callout.Callout.styles,
     ..._theme_toggle.ThemeToggleState.styles,
+    ..._ai_install_prompt.AiInstallPrompt.styles,
     ..._hook_demo.HookDemo.styles,
   ],
 );

@@ -8,4 +8,5 @@
   `usePostFrameEffect`.
 - Added the interactive Jaspr Content documentation application and browser
   test suite.
-
+- Added an AI-agent installation prompt, rendered agent guide, and a stable
+  `llms.txt` reference covering every exported hook.

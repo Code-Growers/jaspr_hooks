@@ -7,6 +7,7 @@ import 'package:jaspr_content/jaspr_content.dart';
 import 'package:jaspr_content/theme.dart';
 
 import 'base_path_table_of_contents.dart';
+import 'components/ai_install_prompt.dart';
 import 'components/docs_chrome.dart';
 import 'components/hook_catalog_view.dart';
 import 'components/hook_demo.dart';
@@ -25,6 +26,10 @@ void main() {
       ],
       components: <CustomComponent>[
         Callout(),
+        CustomComponent(
+          pattern: 'AiInstallPrompt',
+          builder: (String _, Map<String, String> _, Component? _) => const AiInstallPrompt(),
+        ),
         PlainCodeBlock(),
         CustomComponent(
           pattern: 'HookDemo',

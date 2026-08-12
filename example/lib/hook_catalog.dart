@@ -213,6 +213,7 @@ const List<HookDoc> hookCatalog = <HookDoc>[
 /// Documentation guides shown before the hook reference.
 const List<({String title, String href})> guideCatalog = <({String title, String href})>[
   (title: 'Getting started', href: 'guides/getting-started'),
+  (title: 'AI agents', href: 'guides/ai-agents'),
   (title: 'Rules of hooks', href: 'guides/rules-of-hooks'),
   (title: 'SSR & hydration', href: 'guides/ssr-and-hydration'),
   (title: 'Writing custom hooks', href: 'guides/custom-hooks'),

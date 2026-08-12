@@ -7,6 +7,15 @@ test('the home page remains useful without JavaScript', async ({page}) => {
   expect(response?.ok()).toBe(true);
   await expect(page.locator('main')).toContainText('jaspr_hooks');
   await expect(page.locator('main')).toContainText(/hooks/i);
+  await expect(page.getByTestId('ai-install-prompt')).toBeVisible();
+});
+
+test('AI agent documentation remains useful without JavaScript', async ({page}) => {
+  const response = await page.goto('guides/ai-agents/');
+  expect(response?.ok()).toBe(true);
+  await expect(page.locator('h1').first()).toContainText(/AI agents/i);
+  await expect(page.locator('main')).toContainText(/dart pub add jaspr_hooks/i);
+  await expect(page.locator('main')).toContainText(/llms\.txt/i);
 });
 
 for (const hook of hookPages) {

@@ -53,6 +53,133 @@ test('home page uses base-aware assets and hydrates', async ({page}) => {
   expect(failures).toEqual([]);
 });
 
+test('AI agent guide and llms.txt expose the complete integration contract', async ({
+  page,
+  request,
+}) => {
+  const failures = collectRuntimeFailures(page);
+  const guideResponse = await page.goto('guides/ai-agents/', {
+    waitUntil: 'networkidle',
+  });
+
+  expect(guideResponse?.ok()).toBe(true);
+  await expect(page.locator('h1').first()).toContainText(/AI agents/i);
+  await expect(page.locator('main')).toContainText(/dart pub add jaspr_hooks/i);
+  await expect(page.locator('a[href$="llms.txt"]').first()).toBeVisible();
+
+  const llmsResponse = await request.get('llms.txt');
+  expect(llmsResponse.ok()).toBe(true);
+  expect(llmsResponse.headers()['content-type']).toContain('text/plain');
+  const llms = await llmsResponse.text();
+  for (const hook of hookPages) expect(llms).toContain(hook.api);
+  for (const url of [
+    'https://github.com/Code-Growers/jaspr_hooks',
+    'https://code-growers.github.io/jaspr_hooks/',
+    'https://pub.dev/packages/jaspr_hooks',
+  ]) {
+    expect(llms).toContain(url);
+  }
+  expect(failures).toEqual([]);
+});
+
+test('AI install CTA copies a self-contained agent prompt and confirms success', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (window as Window & {__jasprHooksCopiedPrompt?: string})
+            .__jasprHooksCopiedPrompt = text;
+        },
+      },
+    });
+  });
+  const failures = collectRuntimeFailures(page);
+  await page.goto('./', {waitUntil: 'networkidle'});
+
+  const cta = page.getByTestId('ai-install-prompt');
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveAccessibleName(/AI install prompt|copy.*prompt/i);
+  await cta.click();
+
+  await expect(
+    page.locator(
+      '[data-testid="ai-install-feedback"], [data-testid="ai-install-prompt"]',
+    ).filter({hasText: /copied/i}).first(),
+  ).toBeVisible();
+  const prompt = await page.evaluate(
+    () => (window as Window & {__jasprHooksCopiedPrompt?: string})
+      .__jasprHooksCopiedPrompt,
+  );
+  expect(prompt).toContain('dart pub add jaspr_hooks');
+  expect(prompt).toContain(
+    'https://code-growers.github.io/jaspr_hooks/guides/ai-agents/',
+  );
+  expect(prompt).toContain(
+    'https://code-growers.github.io/jaspr_hooks/llms.txt',
+  );
+  expect(failures).toEqual([]);
+});
+
+test('AI install CTA falls back to a temporary text area when Clipboard API fails', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new DOMException('Clipboard permission denied', 'NotAllowedError');
+        },
+      },
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: (command: string) => {
+        if (command !== 'copy') return false;
+        (window as Window & {__jasprHooksFallbackPrompt?: string})
+          .__jasprHooksFallbackPrompt =
+          document.querySelector<HTMLTextAreaElement>('textarea')?.value;
+        return true;
+      },
+    });
+  });
+  const failures = collectRuntimeFailures(page);
+  await page.goto('./', {waitUntil: 'networkidle'});
+
+  await page.getByTestId('ai-install-prompt').click();
+  await expect(page.getByTestId('ai-install-feedback')).toContainText(/copied/i);
+  const fallbackPrompt = await page.evaluate(
+    () => (window as Window & {__jasprHooksFallbackPrompt?: string})
+      .__jasprHooksFallbackPrompt,
+  );
+  expect(fallbackPrompt).toContain('dart pub add jaspr_hooks');
+  expect(fallbackPrompt).toContain(
+    'https://code-growers.github.io/jaspr_hooks/llms.txt',
+  );
+  expect(failures).toEqual([]);
+});
+
+test('AI install actions stack at mobile width', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('./', {waitUntil: 'networkidle'});
+
+  const docs = page.getByRole('link', {name: /AI agent docs/i});
+  const copy = page.getByTestId('ai-install-prompt');
+  await expect(docs).toBeVisible();
+  await expect(copy).toBeVisible();
+
+  const docsBox = await docs.boundingBox();
+  const copyBox = await copy.boundingBox();
+  expect(docsBox).not.toBeNull();
+  expect(copyBox).not.toBeNull();
+  expect(Math.abs(docsBox!.x - copyBox!.x)).toBeLessThan(2);
+  expect(copyBox!.y).toBeGreaterThan(docsBox!.y + docsBox!.height);
+  expect(Math.abs(docsBox!.width - copyBox!.width)).toBeLessThan(2);
+});
+
 test('documentation theme styles survive client-island hydration', async ({page}) => {
   await page.goto('hooks/use-effect/', {waitUntil: 'networkidle'});
   await expect(page.getByTestId('hook-output').first()).toContainText(/effect runs 1/i);

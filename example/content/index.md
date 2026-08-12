@@ -9,8 +9,10 @@ imageAlt: Original fishing-dog mascot for jaspr_hooks
 It does not embed Flutter, and it keeps server rendering and hydration behavior explicit.
 
 <Info>
-New here? Start with [Getting started](guides/getting-started), then read the [rules of hooks](guides/rules-of-hooks).
+New here? Start with the Getting started guide, then read the rules of hooks.
 </Info>
+
+<AiInstallPrompt/>
 
 ## A familiar component
 

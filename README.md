@@ -135,6 +135,18 @@ The `example/` directory is a static Jaspr Content application with
 one guide and interactive demo for every hook. It is also the source deployed
 to GitHub Pages and displayed in pub.dev's Example tab.
 
+## AI coding agents
+
+The documentation home page includes an **AI install prompt** button that
+copies compatibility, installation, hook-rule, and SSR instructions for a
+coding agent.
+
+- [AI-agent guide](https://code-growers.github.io/jaspr_hooks/guides/ai-agents/)
+- [Machine-oriented hook reference](https://code-growers.github.io/jaspr_hooks/llms.txt)
+
+The machine reference documents every exported hook and is checked against the
+canonical hook catalog and package version constraints in CI.
+
 ## Status and releases
 
 Before the first pub.dev release, confirm that the package name remains

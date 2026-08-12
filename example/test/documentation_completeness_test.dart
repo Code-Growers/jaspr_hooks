@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:jaspr_hooks_example/ai_install_prompt.dart';
 import 'package:jaspr_hooks_example/components/hook_demo.dart';
 import 'package:jaspr_hooks_example/hook_catalog.dart';
 import 'package:test/test.dart';
@@ -66,6 +67,52 @@ void main() {
     }
   });
 
+  test('AI agent documentation and llms.txt cover the complete public API', () {
+    final File agentGuide = File(
+      '${exampleRoot.path}/content/guides/ai-agents.md',
+    );
+    final File llmsFile = File('${exampleRoot.path}/web/llms.txt');
+
+    expect(agentGuide.existsSync(), isTrue, reason: 'Missing ${agentGuide.path}.');
+    expect(llmsFile.existsSync(), isTrue, reason: 'Missing ${llmsFile.path}.');
+
+    final String guide = agentGuide.readAsStringSync();
+    final String llms = llmsFile.readAsStringSync();
+    final Map<String, String> pubspec = _releaseMetadata(
+      File('${packageRoot.path}/pubspec.yaml').readAsLinesSync(),
+    );
+    const List<String> requiredUrls = <String>[
+      'https://github.com/Code-Growers/jaspr_hooks',
+      'https://code-growers.github.io/jaspr_hooks/',
+      'https://pub.dev/packages/jaspr_hooks',
+    ];
+
+    for (final String url in requiredUrls) {
+      expect(llms, contains(url), reason: 'llms.txt must reference $url.');
+    }
+    expect(
+      guide,
+      contains('https://code-growers.github.io/jaspr_hooks/llms.txt'),
+    );
+    expect(guide, contains('dart pub add jaspr_hooks'));
+    expect(
+      guide,
+      contains(aiInstallPrompt.trim()),
+      reason: 'The rendered prompt must match the exact text copied by the CTA.',
+    );
+    expect(llms, contains('Current package version: ${pubspec['version']}'));
+    expect(llms, contains('Dart constraint: ${pubspec['sdk']}'));
+    expect(llms, contains('Jaspr constraint: ${pubspec['jaspr']}'));
+
+    for (final HookDoc hook in hookCatalog) {
+      expect(
+        llms,
+        contains(hook.name),
+        reason: 'llms.txt does not document ${hook.name}.',
+      );
+    }
+  });
+
   test('site is GitHub Pages base-path safe', () {
     final String siteData = File(
       '${exampleRoot.path}/content/_data/site.yaml',
@@ -118,6 +165,29 @@ void main() {
       }
     }
   });
+}
+
+Map<String, String> _releaseMetadata(List<String> lines) {
+  final Map<String, String> result = <String, String>{};
+  String? section;
+  for (final String line in lines) {
+    if (line == 'environment:' || line == 'dependencies:') {
+      section = line.substring(0, line.length - 1);
+      continue;
+    }
+    if (line.isNotEmpty && !line.startsWith(' ')) section = null;
+
+    final RegExpMatch? scalar = RegExp(r'''^([a-z_]+):\s*['"]?([^'"#]+?)['"]?\s*$''').firstMatch(line.trim());
+    if (scalar == null) continue;
+    final String key = scalar.group(1)!;
+    final String value = scalar.group(2)!.trim();
+    if (key == 'version' && section == null || key == 'sdk' && section == 'environment') {
+      result[key] = value;
+    } else if (key == 'jaspr' && section == 'dependencies') {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 Directory _findExampleRoot() {

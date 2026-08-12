@@ -1,0 +1,302 @@
+# jaspr_hooks — instructions and API reference for AI coding agents
+
+Canonical URL: https://code-growers.github.io/jaspr_hooks/llms.txt
+Documentation: https://code-growers.github.io/jaspr_hooks/
+Package: https://pub.dev/packages/jaspr_hooks
+Repository: https://github.com/Code-Growers/jaspr_hooks
+Issue tracker: https://github.com/Code-Growers/jaspr_hooks/issues
+
+This file is the machine-oriented reference for jaspr_hooks. Read it before editing a Jaspr application. For richer examples, follow the documentation URL on each hook entry.
+
+## Purpose and compatibility
+
+jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
+
+Current package version: 0.1.0-dev.1
+Dart constraint: >=3.8.0 <4.0.0
+Jaspr constraint: >=0.23.3 <0.24.0 (Jaspr 0.23.x only)
+Public import: package:jaspr_hooks/jaspr_hooks.dart
+
+Before installation, inspect the application's pubspec.yaml. Do not install this version into a project on an incompatible Jaspr release. Do not add flutter_hooks or replace Jaspr components with Flutter widgets.
+
+## Installation
+
+From the Jaspr application's package root, run:
+
+    dart pub add jaspr_hooks
+
+Or add the dependency explicitly:
+
+    dependencies:
+      jaspr_hooks: ^0.1.0-dev.1
+
+Then import the single supported entry point:
+
+    import 'package:jaspr_hooks/jaspr_hooks.dart';
+
+Keep the application's normal Jaspr imports for Component, BuildContext, DOM factories, ValueNotifier, AsyncSnapshot, and related types.
+
+## Hook hosts
+
+- HookComponent extends StatelessComponent. Subclass it and call hooks from its build(BuildContext) method.
+- StatefulHookComponent extends StatefulComponent. Use it when hooks must coexist with a Jaspr State or state mixins; call hooks from the associated State.build method.
+- HookBuilder is a small hook-enabled region. Pass builder: (context) { ... } and call hooks synchronously inside that builder.
+- Calling a hook outside an active build of one of these hosts throws StateError.
+
+Minimal example:
+
+    import 'package:jaspr/dom.dart';
+    import 'package:jaspr/jaspr.dart';
+    import 'package:jaspr_hooks/jaspr_hooks.dart';
+
+    class Counter extends HookComponent {
+      const Counter({super.key});
+
+      @override
+      Component build(BuildContext context) {
+        final count = useState(0);
+        return button(
+          onClick: () => count.value++,
+          [Component.text('Count: ${count.value}')],
+        );
+      }
+    }
+
+## Rules of hooks
+
+1. Call hooks synchronously at the top level of a HookComponent build, a StatefulHookComponent State.build, a HookBuilder builder, or a custom use... function invoked from one of those locations.
+2. Call the same hook runtime types in the same order on every build. Never put a hook call behind a condition, variable-length loop, early return, event handler, timer, Future callback, or Stream callback.
+3. Put conditions inside the hook callback instead. For repeated variable-length content, extract a hook component per item.
+4. Ordered keys define hook resource identity. Include every captured value that changes the resource or callback identity. A default empty key list preserves a value for the mount. A nullable omitted key list on effects means rerun on every client build.
+5. Do not mutate state while rendering except where a hook's documented initialization requires it. Trigger changes from events, effects, or subscriptions.
+6. Hooks are local lifecycle state. Do not share a hook-owned disposable object beyond the lifetime of its owning component unless another owner takes responsibility explicitly.
+
+State preservation compares hook runtime type and ordered keys. Key equality follows flutter_hooks semantics: NaN matches NaN, and 0.0 differs from -0.0.
+
+## SSR and hydration contract
+
+Jaspr constructs independent hook state on the server and browser. Hook state is not serialized automatically. Keep server initializers and first client output deterministic. Use PreloadStateMixin, AsyncStatelessComponent, serialized @client properties, or jaspr_riverpod for server-loaded data.
+
+- useEffect and usePostFrameEffect never run during server or static rendering.
+- useEffect runs synchronously during browser builds. usePostFrameEffect runs after the next completed browser frame.
+- useFuture, useStream, and useOnStreamChange accept nullable sources. Passing a non-null source during server rendering throws StateError. Always call the hook in both environments; pass null on the server and supply deterministic initialData when relevant.
+- useDebounced returns null and creates no Timer on the server.
+- useListenable, useValueListenable, and useListenableSelector may read deterministic current values on the server but attach no live listener. useOnListenableChange also attaches no server listener.
+- useState, useMemoized, useCallback, useRef, useReducer, usePrevious, useValueChanged, and useStreamController can initialize on either platform; their initializers must be deterministic.
+- Browser lifecycle value hooks return unknown during SSR and the first hydration build. They read browser state and subscribe after the first client frame. Their change-callback variants do not fire for that initial synchronization.
+- Never conditionally skip a hook because context.binding.isClient is false. Select a nullable source or branch inside an effect while preserving hook call order.
+
+Safe async source pattern:
+
+    final future = useMemoized<Future<User>?>(
+      () => context.binding.isClient ? loadUser() : null,
+      [context.binding.isClient, userId],
+    );
+    final snapshot = useFuture(future, initialData: serverUser);
+
+## Custom hooks and low-level lifecycle
+
+Prefer composing built-in hooks in a top-level function whose name begins with use. This preserves a small API and reuses tested lifecycle behavior.
+
+Use the low-level API only when composition cannot model the resource:
+
+- Hook<R> is immutable configuration. Pass optional ordered keys to its constructor and implement createState().
+- HookState<R, H extends Hook<R>> owns mutable lifecycle state.
+- initHook() runs once after attachment. Do not watch inherited components there; read them in build().
+- build(BuildContext context) returns the current hook value.
+- didUpdateHook(H oldHook) handles a preserved state receiving new configuration.
+- deactivate() forwards Jaspr deactivation.
+- dispose() releases owned resources.
+- setState(callback) mutates hook state and requests an unconditional rebuild.
+- markMayNeedRebuild() requests an optional rebuild; shouldRebuild() decides whether it proceeds.
+- context, hook, and mounted expose the owning context, current configuration, and attachment state.
+- reportHookError(error, stackTrace) reports an isolated lifecycle failure through the Jaspr binding.
+- Register an instance with R use<R>(Hook<R> hook).
+- Hook states are disposed in reverse call order. Each cleanup failure is reported without preventing the remaining hook states from being cleaned up.
+
+Custom hooks obey exactly the same unconditional call-order and SSR rules as built-in hooks.
+
+    class CounterHook extends Hook<int> {
+      const CounterHook({super.keys});
+
+      @override
+      CounterHookState createState() => CounterHookState();
+    }
+
+    class CounterHookState extends HookState<int, CounterHook> {
+      var count = 0;
+
+      void increment() => setState(() => count++);
+
+      @override
+      int build(BuildContext context) => count;
+    }
+
+    int useCounter([List<Object?>? keys]) => use(CounterHook(keys: keys));
+
+Related exported types:
+
+- ObjectRef<T> is the mutable cell returned by useRef.
+- Store<StateT, ActionT> and Reducer<StateT, ActionT> support useReducer.
+- Dispose is void Function(), returned by effect callbacks for cleanup.
+- IsMounted is bool Function(), returned by useIsMounted.
+- DocumentVisibility has unknown, visible, and hidden values.
+- PreferredColorScheme has unknown, light, and dark values.
+- DocumentVisibilityCallback and PreferredColorSchemeCallback receive previous and current enum values.
+
+## API reference: framework
+
+### use
+Signature: R use<R>(Hook<R> hook)
+Returns the value built by a custom HookState and registers that state at the current call position. Use only inside a hook host build or a custom use... function. Lifecycle and identity are controlled by the Hook runtime type and keys.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/custom-hook/
+
+### useContext
+Signature: BuildContext useContext()
+Returns the BuildContext of the currently building hook host. Works during server and client builds. Calling it outside an active hook build throws StateError.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-context/
+
+## API reference: primitives
+
+### useState
+Signature: ValueNotifier<T> useState<T>(T initialData)
+Creates, subscribes to, and disposes an owned ValueNotifier. Assigning a different .value rebuilds the owner. initialData is used only when the hook state is first created and must be deterministic for SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-state/
+
+### useEffect
+Signature: void useEffect(Dispose? Function() effect, [List<Object?>? keys])
+Runs a synchronous browser-client effect that may return a synchronous cleanup. With omitted/null keys, cleanup and effect run on every client build. With stable keys, state is preserved. With changed keys, a replacement effect initializes and the replaced state is cleaned after the build. The final cleanup runs on disposal. It is skipped on the server. Never return a Future.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-effect/
+
+### usePostFrameEffect
+Signature: void usePostFrameEffect(Dispose? Function() effect, [List<Object?>? keys])
+Schedules the effect after the next completed browser frame. It is skipped on the server. A key change or disposal invalidates stale scheduled work; cleanup from a completed run occurs before its replacement and on disposal. Use for committed-DOM work.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-post-frame-effect/
+
+### useMemoized
+Signature: T useMemoized<T>(T Function() valueBuilder, [List<Object?> keys = const []])
+Evaluates valueBuilder immediately and preserves its result until ordered keys change. It does not dispose the value. The builder runs during SSR, so keep it deterministic and free of browser-only work.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-memoized/
+
+### useCallback
+Signature: T useCallback<T extends Function>(T callback, [List<Object?> keys = const []])
+Preserves the callback instance until ordered keys change. Include every captured value whose change requires a fresh closure. Equivalent to memoizing the callback.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-callback/
+
+### useRef
+Signature: ObjectRef<T> useRef<T>(T initialValue)
+Returns a stable mutable ObjectRef<T>. Changing .value does not rebuild. Use for bookkeeping or imperative handles, not render state. The initial value must be deterministic when used during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-ref/
+
+### useValueChanged
+Signature: R? useValueChanged<T, R>(T value, R? Function(T oldValue, R? oldResult) valueChange)
+Returns null on the first build. When value differs on a later build, calls valueChange with the previous input and previous result, stores the nullable result, and returns it. It does not schedule a rebuild itself.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-value-changed/
+
+## API reference: lifecycle and state
+
+### useReducer
+Signature: Store<StateT, ActionT> useReducer<StateT, ActionT>(Reducer<StateT, ActionT> reducer, {required StateT initialState, required ActionT initialAction})
+Creates a Store exposing state and dispatch(action). Initialization computes reducer(initialState, initialAction). Dispatch uses the latest reducer and rebuilds only when nextState != current state. Reducers and initial values must be deterministic and side-effect free during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-reducer/
+
+### usePrevious
+Signature: T? usePrevious<T>(T value)
+Returns null initially and the input from the preceding build thereafter. It records history without scheduling a rebuild. Server build history is not transferred to the independent client hook tree.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-previous/
+
+### useIsMounted
+Signature: IsMounted useIsMounted()
+Returns a stable bool Function() that is true while attached and false after disposal. Prefer cancellation when available; use this callback as a final guard before updating hook-owned state after delayed work.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-is-mounted/
+
+### useDebounced
+Signature: T? useDebounced<T>(T value, Duration timeout)
+Returns null until value remains unchanged for timeout, then stores it and rebuilds. A value or timeout change cancels and restarts the Timer. Disposal cancels it. On the server it always returns null and creates no Timer.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-debounced/
+
+## API reference: async
+
+### useFuture
+Signature: AsyncSnapshot<T> useFuture<T>(Future<T>? future, {T? initialData, bool preserveState = true})
+Subscribes on the browser and exposes none/waiting/done data or error snapshots. Keep Future identity stable with useMemoized. Replacing it ignores stale completions; preserveState keeps prior snapshot data while transitioning. A non-null Future on the server throws StateError; pass null and use initialData/server-data facilities.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-future/
+
+### useStream
+Signature: AsyncSnapshot<T> useStream<T>(Stream<T>? stream, {T? initialData, bool preserveState = true})
+Subscribes on the browser and exposes none/waiting/active/done snapshots. Replacing the Stream cancels the old subscription; preserveState controls retention of the old snapshot. Disposal cancels. A non-null Stream on the server throws StateError.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-stream/
+
+### useStreamController
+Signature: StreamController<T> useStreamController<T>({bool sync = false, VoidCallback? onListen, VoidCallback? onCancel, List<Object?>? keys})
+Creates an owned broadcast StreamController and closes it on disposal or keyed replacement. onListen and onCancel update without replacement when state is preserved. The controller can initialize on either platform, but its stream must not be passed non-null to client-only subscription hooks during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-stream-controller/
+
+### useOnStreamChange
+Signature: StreamSubscription<T>? useOnStreamChange<T>(Stream<T>? stream, {void Function(T event)? onData, void Function(Object error, StackTrace stackTrace)? onError, void Function()? onDone, bool? cancelOnError})
+Subscribes on the browser and invokes the latest callbacks without rebuilding automatically. Returns the active subscription or null. Replacing stream or cancelOnError replaces and cancels the subscription; disposal cancels it. A non-null Stream on the server throws StateError.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-stream-change/
+
+## API reference: listenables
+
+### useListenable
+Signature: T useListenable<T extends Listenable?>(T listenable)
+Returns the same nullable Listenable and rebuilds on every client notification. Replacing the source moves the listener. No listener is attached on the server; deterministic model values may still be read for markup.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-listenable/
+
+### useListenableSelector
+Signature: R useListenableSelector<R>(Listenable? listenable, R Function() selector)
+Evaluates selector and rebuilds on the client only when a notification produces a selection != the previous selection. Replacing the source moves the listener; updating the selector refreshes the stored selection. SSR evaluates the selector but attaches no listener.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-listenable-selector/
+
+### useValueNotifier
+Signature: ValueNotifier<T> useValueNotifier<T>(T initialData, [List<Object?>? keys])
+Creates and disposes an owned ValueNotifier but does not subscribe the owning component. Use useValueListenable or useListenableSelector when the owner should observe it. Ordered key changes replace and dispose it. Initialization is available during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-value-notifier/
+
+### useValueListenable
+Signature: T useValueListenable<T>(ValueListenable<T> valueListenable)
+Returns .value and rebuilds on client notifications. Replacing the source moves the listener. SSR reads the deterministic current value but attaches no listener.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-value-listenable/
+
+### useOnListenableChange
+Signature: void useOnListenableChange(Listenable? listenable, VoidCallback listener)
+Invokes the latest callback on client notifications without rebuilding automatically. Replacing the source moves the listener. No listener is attached during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-listenable-change/
+
+## API reference: browser lifecycle
+
+### useDocumentVisibility
+Signature: DocumentVisibility useDocumentVisibility()
+Returns unknown during SSR and the first hydration build, then visible or hidden after the first client frame. It can remain unknown when the browser lacks a supported visibility API. Rebuilds on later visibility changes and cancels its browser listener on disposal.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-document-visibility/
+
+### useOnDocumentVisibilityChange
+Signature: void useOnDocumentVisibilityChange(DocumentVisibilityCallback callback)
+After first-frame browser synchronization establishes a baseline, invokes the latest callback with (previous, current) for distinct visibility changes. It does not fire for initial synchronization and has no server listener.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-document-visibility-change/
+
+### usePreferredColorScheme
+Signature: PreferredColorScheme usePreferredColorScheme()
+Returns unknown during SSR and the first hydration build, then light or dark after the first client frame. It can remain unknown when the browser lacks a supported media-query API. Rebuilds when prefers-color-scheme changes and cleans up the media-query listener.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-preferred-color-scheme/
+
+### useOnPreferredColorSchemeChange
+Signature: void useOnPreferredColorSchemeChange(PreferredColorSchemeCallback callback)
+After first-frame browser synchronization establishes a baseline, invokes the latest callback with (previous, current) for distinct light/dark preference changes. It does not fire for initial synchronization and has no server listener.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-preferred-color-scheme-change/
+
+## Agent completion checklist
+
+- Confirm the target uses native Jaspr 0.23.x and a compatible Dart SDK.
+- Add jaspr_hooks without adding flutter_hooks or Flutter SDK dependencies.
+- Import package:jaspr_hooks/jaspr_hooks.dart and choose the smallest suitable hook host.
+- Keep all hook calls unconditional, synchronous, and in a stable order.
+- Include correct keys and respect ownership/cleanup behavior.
+- Preserve deterministic server HTML and first hydration output.
+- Pass null Future/Stream sources on the server; do not skip their hook calls.
+- Run dart format, dart analyze, and the project's relevant VM/browser/server tests.
+- Summarize changed dependencies, converted components, SSR decisions, and verification results.
+
+Full rendered documentation: https://code-growers.github.io/jaspr_hooks/
+AI-agent guide: https://code-growers.github.io/jaspr_hooks/guides/ai-agents/

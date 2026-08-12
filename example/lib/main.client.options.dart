@@ -10,6 +10,8 @@ import 'package:jaspr_content/components/sidebar_toggle_button.dart'
     deferred as _sidebar_toggle_button;
 import 'package:jaspr_content/components/theme_toggle.dart'
     deferred as _theme_toggle;
+import 'package:jaspr_hooks_example/components/ai_install_prompt.dart'
+    deferred as _ai_install_prompt;
 import 'package:jaspr_hooks_example/components/hook_demo.dart'
     deferred as _hook_demo;
 
@@ -38,6 +40,10 @@ ClientOptions get defaultClientOptions => ClientOptions(
     'jaspr_content:theme_toggle': ClientLoader(
       (p) => _theme_toggle.ThemeToggle(),
       loader: _theme_toggle.loadLibrary,
+    ),
+    'ai_install_prompt': ClientLoader(
+      (p) => _ai_install_prompt.AiInstallPrompt(),
+      loader: _ai_install_prompt.loadLibrary,
     ),
     'hook_demo': ClientLoader(
       (p) => _hook_demo.HookDemo(name: p['name'] as String),
