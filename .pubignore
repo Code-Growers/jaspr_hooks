@@ -1,0 +1,16 @@
+.dart_tool/
+.github/
+.pub/
+build/
+coverage/
+doc/api/
+e2e/
+node_modules/
+playwright-report/
+test-results/
+example/build/
+tmp/
+**/node_modules/
+**/playwright-report/
+**/test-results/
+*.log

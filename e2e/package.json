@@ -1,0 +1,17 @@
+{
+  "name": "jaspr-hooks-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium --project=static-chromium",
+    "stage": "node stage.mjs",
+    "typecheck": "tsc",
+    "install:browsers": "playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "@playwright/test": "1.61.1",
+    "typescript": "5.9.2"
+  }
+}

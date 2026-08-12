@@ -1,0 +1,86 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - uses: actions/configure-pages@v5
+      - run: dart pub global activate jaspr_cli 0.23.3
+      - run: dart pub get
+        working-directory: example
+      - name: Verify documentation completeness
+        run: dart test
+        working-directory: example
+      - name: Build project Pages site
+        working-directory: example
+        env:
+          SITE_DOMAIN: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: jaspr build --sitemap-domain "$SITE_DOMAIN"
+      - name: Verify project Pages asset prefix
+        shell: bash
+        run: |
+          if grep -R 'href="/' example/build/jaspr --include='*.html' | grep -v 'href="/jaspr_hooks/'; then
+            echo 'Found a root-absolute link that escapes /jaspr_hooks/.' >&2
+            exit 1
+          fi
+          if grep -R 'src="/' example/build/jaspr --include='*.html' | grep -v 'src="/jaspr_hooks/'; then
+            echo 'Found a root-absolute asset that escapes /jaspr_hooks/.' >&2
+            exit 1
+          fi
+      - run: npm ci
+        working-directory: e2e
+      - run: npm run typecheck
+        working-directory: e2e
+      - run: npm run stage
+        working-directory: e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Verify built Pages site in Chromium
+        run: npm run test:chromium
+        working-directory: e2e
+      - name: Upload Playwright failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pages-playwright-chromium-failures
+          if-no-files-found: ignore
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: example/build/jaspr
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

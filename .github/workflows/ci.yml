@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  dart-stable:
+    name: Current stable Dart quality and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+      - run: dart test --exclude-tags browser
+      - run: dart test --platform chrome test/browser_lifecycle_test.dart
+      - run: dart doc --validate-links
+      - run: dart run tool/verify_package_layout.dart
+
+  dart-lower-bound:
+    name: Dart 3.8 consumer lower bound
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.8.0
+      - name: Verify runtime dependency lower bounds without dev tools
+        shell: bash
+        run: |
+          fixture="$RUNNER_TEMP/jaspr_hooks_consumer"
+          mkdir -p "$fixture/lib"
+          package_path="${GITHUB_WORKSPACE//\\//}"
+          printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.8.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n' "$package_path" > "$fixture/pubspec.yaml"
+          printf "import 'package:jaspr_hooks/jaspr_hooks.dart';\nvoid main() { print(HookComponent); }\n" > "$fixture/lib/main.dart"
+          printf '%s\n' \
+            "import 'package:jaspr_hooks/jaspr_hooks.dart';" \
+            '' \
+            'void main() {' \
+            '  final visibilityHook = useDocumentVisibility;' \
+            '  final visibilityChangeHook = useOnDocumentVisibilityChange;' \
+            '  final colorSchemeHook = usePreferredColorScheme;' \
+            '  final colorSchemeChangeHook = useOnPreferredColorSchemeChange;' \
+            '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook));' \
+            '}' > "$fixture/lib/web.dart"
+          cd "$fixture"
+          dart pub get
+          dart pub downgrade
+          dart analyze
+          dart compile exe lib/main.dart -o lower_bound_consumer
+          dart compile js lib/web.dart -o lower_bound_consumer.js
+
+  docs-and-e2e:
+    name: Static docs and Chromium E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: dart pub get
+      - run: dart pub global activate jaspr_cli 0.23.3
+      - run: dart pub get
+        working-directory: example
+      - run: dart test
+        working-directory: example
+      - name: Build base-aware static documentation
+        working-directory: example
+        env:
+          SITE_DOMAIN: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: jaspr build --sitemap-domain "$SITE_DOMAIN"
+      - run: npm ci
+        working-directory: e2e
+      - run: npm run typecheck
+        working-directory: e2e
+      - run: npm run stage
+        working-directory: e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - run: npm run test:chromium
+        working-directory: e2e
+      - name: Upload Playwright failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-chromium-failures
+          if-no-files-found: ignore
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+
+  publish-dry-run:
+    name: Publication and pana
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart run tool/verify_publish_dry_run.dart
+      - run: dart pub global activate pana
+      - name: Analyze a disposable package copy
+        shell: bash
+        run: |
+          package_dir="$RUNNER_TEMP/jaspr_hooks_pana"
+          mkdir -p "$package_dir"
+          tar --exclude=.git --exclude=.dart_tool --exclude=build -cf - . | tar -xf - -C "$package_dir"
+          cd "$package_dir"
+          pana_threshold=10
+          if grep -Eq '^repository:[[:space:]]*https://' pubspec.yaml; then
+            pana_threshold=0
+          else
+            echo 'Allowing only the 10-point pre-release repository metadata deduction.'
+          fi
+          pana --exit-code-threshold "$pana_threshold"

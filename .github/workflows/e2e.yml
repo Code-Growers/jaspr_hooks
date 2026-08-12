@@ -1,0 +1,53 @@
+name: Full browser E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: dart pub global activate jaspr_cli 0.23.3
+      - run: dart pub get
+        working-directory: example
+      - name: Build production documentation
+        working-directory: example
+        env:
+          SITE_DOMAIN: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: jaspr build --sitemap-domain "$SITE_DOMAIN"
+      - run: npm ci
+        working-directory: e2e
+      - run: npm run typecheck
+        working-directory: e2e
+      - run: npm run stage
+        working-directory: e2e
+      - run: npx playwright install --with-deps
+        working-directory: e2e
+      - run: npm test
+        working-directory: e2e
+      - name: Upload Playwright failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-three-browser-failures
+          if-no-files-found: ignore
+          path: |
+            e2e/playwright-report
+            e2e/test-results

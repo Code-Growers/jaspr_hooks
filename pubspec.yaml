@@ -1,0 +1,32 @@
+name: jaspr_hooks
+description: React-style lifecycle and state hooks for native Jaspr components.
+version: 0.1.0-dev.1
+repository: https://github.com/Code-Growers/jaspr_hooks
+issue_tracker: https://github.com/Code-Growers/jaspr_hooks/issues
+documentation: https://code-growers.github.io/jaspr_hooks/
+
+screenshots:
+  - description: The jaspr_hooks catalog rendered by the example application.
+    path: screenshots/hook_gallery.png
+  - description: The interactive useEffect demo after changing its dependency.
+    path: screenshots/hook_demo.png
+
+topics:
+  - jaspr
+  - hooks
+  - web
+  - state-management
+  - server-side-rendering
+
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+
+dependencies:
+  jaspr: '>=0.23.3 <0.24.0'
+  web: ^1.1.1
+
+dev_dependencies:
+  jaspr_lints: ^0.7.1
+  jaspr_test: 0.23.3
+  lints: ^6.1.0
+  test: ^1.25.8

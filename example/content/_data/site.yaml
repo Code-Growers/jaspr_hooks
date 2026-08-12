@@ -1,0 +1,6 @@
+title: jaspr_hooks
+titleBase: jaspr_hooks
+description: Ordered lifecycle and state hooks for native Jaspr components.
+lang: en
+base: /jaspr_hooks/
+favicon: images/jaspr_hooks_favicon_32.png
