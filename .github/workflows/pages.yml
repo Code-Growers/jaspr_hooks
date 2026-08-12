@@ -28,6 +28,8 @@ jobs:
           cache: npm
           cache-dependency-path: e2e/package-lock.json
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - run: dart pub global activate jaspr_cli 0.23.3
       - run: dart pub get
         working-directory: example
