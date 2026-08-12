@@ -40,7 +40,8 @@ Explain the choice. Do not silently promote a preview to stable.
    ```
 
 4. Run `dart pub get` from `example/` so its committed lockfile records the path package's new version.
-5. Search the repository for stale current-version references. Historical changelog entries must remain unchanged.
+5. If the package has not been published yet, update the manual first-release version in `CONTRIBUTING.md`.
+6. Search the repository for stale current-version references. Historical changelog entries and the recorded first manual release must remain unchanged.
 
 ## Validate the release
 

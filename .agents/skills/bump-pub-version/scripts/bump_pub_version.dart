@@ -44,18 +44,13 @@ void runVersionBump(
     VersionReplacement('pubspec.yaml', 'version: $current', 'version: $target'),
     VersionReplacement(
       'README.md',
-      '`$current` is a preview',
-      '`$target` is a preview',
+      _releaseNotice(current),
+      _releaseNotice(target),
     ),
     VersionReplacement(
       'README.md',
       'jaspr_hooks: ^$current',
       'jaspr_hooks: ^$target',
-    ),
-    VersionReplacement(
-      'CONTRIBUTING.md',
-      'publish `$current` manually',
-      'publish `$target` manually',
     ),
     VersionReplacement(
       'example/content/guides/getting-started.md',
@@ -138,6 +133,8 @@ final class PackageVersion implements Comparable<PackageVersion> {
   final List<String>? prerelease;
   final String source;
 
+  String get stable => '$major.$minor.$patch';
+
   @override
   int compareTo(PackageVersion other) {
     for (final comparison in <int>[
@@ -173,6 +170,14 @@ final class PackageVersion implements Comparable<PackageVersion> {
 
   @override
   String toString() => source;
+}
+
+String _releaseNotice(PackageVersion version) {
+  if (version.prerelease == null) {
+    return '> Current stable release: `$version`.';
+  }
+  return '> `$version` is a preview. The API is intentionally being validated in real\n'
+      '> Jaspr applications before `${version.stable}`.';
 }
 
 Never _fail(String message) {
