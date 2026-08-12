@@ -22,6 +22,7 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
       - run: dart test --exclude-tags browser
+      - run: dart test .agents/skills/bump-pub-version/scripts/bump_pub_version_test.dart
       - run: dart test --platform chrome test/browser_lifecycle_test.dart
       - run: dart doc --validate-links
       - run: dart run tool/verify_package_layout.dart

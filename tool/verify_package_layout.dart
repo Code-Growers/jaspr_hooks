@@ -12,6 +12,7 @@ const _required = <String>[
 ];
 
 const _forbidden = <String>[
+  '.agents',
   'e2e',
   'node_modules',
   'playwright-report',

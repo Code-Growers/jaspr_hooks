@@ -2,7 +2,6 @@ import 'package:jaspr/jaspr.dart';
 
 typedef TestHarnessBuilder = Component Function();
 
-/// Drives rebuilds without coupling tests to a hook under test.
 final class TestHarnessController {
   _TestHarnessState? _state;
 

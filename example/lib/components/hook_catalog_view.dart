@@ -4,7 +4,6 @@ import 'package:jaspr_content/theme.dart';
 
 import '../hook_catalog.dart';
 
-/// Renders the canonical hook catalog from Dart metadata.
 class HookCatalogView extends StatelessComponent {
   const HookCatalogView({super.key});
 

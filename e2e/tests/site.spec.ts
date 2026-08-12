@@ -201,6 +201,24 @@ test('documentation theme styles survive client-island hydration', async ({page}
   expect(styles.demoBorder).toBe('1px');
 });
 
+test('documentation keeps comfortable space below the footer', async ({page}) => {
+  for (const viewport of [
+    {width: 1440, height: 900},
+    {width: 390, height: 844},
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('./', {waitUntil: 'networkidle'});
+
+    const bottomSpace = await page.locator('.jaspr-hooks-footer').evaluate((footer) => {
+      const paragraph = footer.querySelector('p');
+      if (paragraph == null) throw new Error('Documentation footer paragraph is missing.');
+      return footer.getBoundingClientRect().bottom - paragraph.getBoundingClientRect().bottom;
+    });
+
+    expect(bottomSpace).toBeGreaterThanOrEqual(48);
+  }
+});
+
 for (const hook of hookPages) {
   test(`${hook.api} page direct-loads with docs and demo`, async ({page}) => {
     const failures = collectRuntimeFailures(page);

@@ -5,15 +5,12 @@ import 'package:jaspr/jaspr.dart';
 import 'package:jaspr_content/theme.dart';
 import 'package:jaspr_hooks/jaspr_hooks.dart';
 
-/// Interactive client island used by every hook reference page.
 @client
 class HookDemo extends StatelessComponent {
   const HookDemo({required this.name, super.key});
 
-  /// The public hook API demonstrated by this island.
   final String name;
 
-  /// Names accepted by the demo registry.
   static const Set<String> supportedNames = <String>{
     'use',
     'useCallback',
@@ -233,8 +230,7 @@ class HookDemo extends StatelessComponent {
   Component _useOnStreamChangeDemo(BuildContext context) {
     final StreamController<int> controller = useStreamController<int>(sync: true);
     final ValueNotifier<int> latest = useState<int>(0);
-    // The hook owns and cancels the returned subscription.
-    // ignore: cancel_subscriptions
+    // ignore: cancel_subscriptions, canceled by useOnStreamChange on disposal.
     useOnStreamChange<int>(
       context.binding.isClient ? controller.stream : null,
       onData: (int value) => latest.value = value,

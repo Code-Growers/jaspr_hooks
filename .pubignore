@@ -1,4 +1,5 @@
 .dart_tool/
+.agents/
 .github/
 .pub/
 build/

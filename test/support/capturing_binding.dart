@@ -11,7 +11,6 @@ final class ReportedBuildError {
   final StackTrace stackTrace;
 }
 
-/// A component-test binding that keeps build failures inspectable.
 final class CapturingTestComponentsBinding extends TestComponentsBinding {
   CapturingTestComponentsBinding({
     required bool isClient,
@@ -29,9 +28,6 @@ final class CapturingTestComponentsBinding extends TestComponentsBinding {
     Object error,
     StackTrace stackTrace,
   ) {
-    // Match Jaspr's production bindings, which include the component type in
-    // their error message. This deliberately fails if cleanup is reported only
-    // after Element.unmount() has cleared the component.
     reportingComponentTypes.add(element.component.runtimeType);
     errors.add(ReportedBuildError(element, error, stackTrace));
   }

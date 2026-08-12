@@ -2,7 +2,6 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
-/// Copies [value] with the modern Clipboard API and a synchronous DOM fallback.
 Future<bool> copyTextToClipboard(String value) async {
   try {
     await web.window.navigator.clipboard.writeText(value).toDart;

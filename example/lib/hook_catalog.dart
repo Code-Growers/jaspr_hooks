@@ -1,7 +1,5 @@
-/// Canonical metadata for every public hook documented by the example site.
 library;
 
-/// A documentation category used by the sidebar and catalog page.
 enum HookCategory {
   framework('Framework'),
   primitives('Primitives'),
@@ -12,11 +10,9 @@ enum HookCategory {
 
   const HookCategory(this.label);
 
-  /// Human-readable category label.
   final String label;
 }
 
-/// Metadata for one public hook API.
 final class HookDoc {
   const HookDoc({
     required this.name,
@@ -25,22 +21,16 @@ final class HookDoc {
     required this.summary,
   });
 
-  /// Public API name.
   final String name;
 
-  /// Route-safe file name.
   final String slug;
 
-  /// Navigation category.
   final HookCategory category;
 
-  /// One-sentence summary.
   final String summary;
 
-  /// Route relative to the site's configured `<base>`.
   String get href => 'hooks/$slug';
 
-  /// Root-package semantic test file responsible for this hook.
   String get testFile => switch (category) {
     HookCategory.framework => 'test/framework_test.dart',
     HookCategory.primitives || HookCategory.state => 'test/primitives_test.dart',
@@ -50,7 +40,6 @@ final class HookDoc {
   };
 }
 
-/// The single source of truth for hook navigation, demos, and completeness tests.
 const List<HookDoc> hookCatalog = <HookDoc>[
   HookDoc(
     name: 'use',
@@ -210,7 +199,6 @@ const List<HookDoc> hookCatalog = <HookDoc>[
   ),
 ];
 
-/// Documentation guides shown before the hook reference.
 const List<({String title, String href})> guideCatalog = <({String title, String href})>[
   (title: 'Getting started', href: 'guides/getting-started'),
   (title: 'AI agents', href: 'guides/ai-agents'),

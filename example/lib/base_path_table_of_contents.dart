@@ -2,7 +2,6 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:jaspr_content/jaspr_content.dart';
 
-/// Generates the page table of contents with project-Pages-safe fragment URLs.
 final class BasePathTableOfContentsExtension implements PageExtension {
   const BasePathTableOfContentsExtension({this.maxHeaderDepth = 3});
 

@@ -1,4 +1,3 @@
-/// Server/static entrypoint for the documentation site.
 library;
 
 import 'package:jaspr/server.dart';

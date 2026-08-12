@@ -1,4 +1,3 @@
-/// Browser entrypoint that hydrates every `@client` hook demo.
 library;
 
 import 'package:jaspr/client.dart';

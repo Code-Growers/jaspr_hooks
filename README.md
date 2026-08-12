@@ -11,7 +11,7 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.1.0-dev.1` is a preview. The API is intentionally being validated in real
+> `0.1.0-dev.2` is a preview. The API is intentionally being validated in real
 > Jaspr applications before `0.1.0`.
 
 ## Install
@@ -19,7 +19,7 @@ HTML on the server and in the browser.
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.0-dev.1
+  jaspr_hooks: ^0.1.0-dev.2
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
@@ -51,14 +51,7 @@ Reusable custom hooks are ordinary functions whose names begin with `use`:
 
 ```dart
 ValueNotifier<int> useCounter([int initialValue = 0]) {
-  final counter = useState(initialValue);
-
-  useEffect(() {
-    // Subscribe or perform another client-side effect here.
-    return null;
-  }, const []);
-
-  return counter;
+  return useState(initialValue);
 }
 ```
 

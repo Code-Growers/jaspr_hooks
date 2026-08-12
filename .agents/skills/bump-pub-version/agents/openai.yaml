@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bump Pub Version"
+  short_description: "Prepare a validated Dart package release"
+  default_prompt: "Use $bump-pub-version to select, apply, and validate the next jaspr_hooks release version."

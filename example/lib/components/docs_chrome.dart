@@ -8,7 +8,6 @@ import 'package:jaspr_content/theme.dart';
 
 import '../hook_catalog.dart';
 
-/// Header used by the documentation layout.
 class DocsHeader extends StatelessComponent {
   const DocsHeader({super.key});
 
@@ -88,7 +87,6 @@ class DocsHeader extends StatelessComponent {
   ];
 }
 
-/// Sidebar whose relative links honor the GitHub Pages base path.
 class DocsSidebar extends StatelessComponent {
   const DocsSidebar({super.key});
 
@@ -126,22 +124,28 @@ class DocsSidebar extends StatelessComponent {
   }
 }
 
-/// Attribution shown beneath every documentation page.
 class DocsFooter extends StatelessComponent {
   const DocsFooter({super.key});
 
   @override
   Component build(BuildContext context) {
-    return footer(<Component>[
-      p(<Component>[
-        const Component.text('Built for native Jaspr. Runtime design substantially adapted from '),
-        a(
-          href: 'https://github.com/rrousselGit/flutter_hooks',
-          attributes: const <String, String>{'target': '_blank', 'rel': 'noreferrer'},
-          <Component>[const Component.text('flutter_hooks')],
-        ),
-        const Component.text(' under the MIT License.'),
+    return Component.fragment(<Component>[
+      Document.head(children: <Component>[Style(styles: _styles)]),
+      footer(classes: 'jaspr-hooks-footer', <Component>[
+        p(<Component>[
+          const Component.text('Built for native Jaspr. Runtime design substantially adapted from '),
+          a(
+            href: 'https://github.com/rrousselGit/flutter_hooks',
+            attributes: const <String, String>{'target': '_blank', 'rel': 'noreferrer'},
+            <Component>[const Component.text('flutter_hooks')],
+          ),
+          const Component.text(' under the MIT License.'),
+        ]),
       ]),
     ]);
   }
+
+  static final List<StyleRule> _styles = <StyleRule>[
+    css('.jaspr-hooks-footer').styles(padding: Padding.only(bottom: Unit.rem(4))),
+  ];
 }

@@ -1,7 +1,5 @@
-/// Stable public URL for the machine-oriented jaspr_hooks documentation.
 const String aiAgentDocsUrl = 'https://code-growers.github.io/jaspr_hooks/llms.txt';
 
-/// Ready-to-paste instructions for an AI coding agent.
 const String aiInstallPrompt =
     '''
 Install and use jaspr_hooks in this Jaspr application.

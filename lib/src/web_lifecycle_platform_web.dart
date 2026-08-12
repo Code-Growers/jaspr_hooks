@@ -1,6 +1,3 @@
-// Browser implementation is isolated behind a conditional import so no Web
-// JavaScript interop type escapes the package's public API.
-
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 

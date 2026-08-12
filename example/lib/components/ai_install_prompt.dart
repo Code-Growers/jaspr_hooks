@@ -7,7 +7,6 @@ import 'package:jaspr_hooks/jaspr_hooks.dart';
 import '../ai_clipboard.dart';
 import '../ai_install_prompt.dart';
 
-/// Landing-page call to action that copies a complete coding-agent prompt.
 @client
 class AiInstallPrompt extends StatelessComponent {
   const AiInstallPrompt({super.key});

@@ -1,3 +1,10 @@
+# 0.1.0-dev.2
+
+- Improved documentation layout spacing at the end of every page.
+- Added a repository agent skill for consistent version bumps and release
+  validation.
+- Removed redundant internal comments without changing runtime behavior.
+
 # 0.1.0-dev.1
 
 - Initial preview of the native Jaspr hook runtime.
