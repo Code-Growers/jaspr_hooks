@@ -47,7 +47,14 @@ jobs:
           mkdir -p "$fixture/lib"
           package_path="${GITHUB_WORKSPACE//\\//}"
           printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.8.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n  universal_web: ^1.1.1+1\n' "$package_path" > "$fixture/pubspec.yaml"
-          printf "import 'package:jaspr_hooks/jaspr_hooks.dart';\nvoid main() { print(HookComponent); }\n" > "$fixture/lib/main.dart"
+          printf '%s\n' \
+            "import 'package:jaspr_hooks/jaspr_hooks.dart';" \
+            '' \
+            'void main() {' \
+            '  final idHook = useId;' \
+            '  final eventHook = useEvent<int, int>;' \
+            '  print((HookComponent, idHook, eventHook));' \
+            '}' > "$fixture/lib/main.dart"
           printf '%s\n' \
             "import 'package:jaspr_hooks/web.dart';" \
             "import 'package:universal_web/web.dart' as web;" \
@@ -60,8 +67,15 @@ jobs:
             '  final mediaHook = useMediaQuery;' \
             '  final motionHook = usePreferredMotion;' \
             '  final nodeKey = useNodeKey<web.Element>;' \
+            '  final focusHook = useFocus;' \
+            '  final focusWithinHook = useFocusWithin;' \
+            '  final activeElementHook = useActiveElement;' \
+            '  final abortControllerHook = useAbortController;' \
+            '  final animationFrameHook = useAnimationFrame;' \
+            '  final historyStateHook = useHistoryState;' \
+            '  final clipboardHook = useClipboard;' \
             '  final windowSizeHook = useWindowSize;' \
-            '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook, mediaHook, motionHook, nodeKey, windowSizeHook));' \
+            '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook, mediaHook, motionHook, nodeKey, focusHook, focusWithinHook, activeElementHook, abortControllerHook, animationFrameHook, historyStateHook, clipboardHook, windowSizeHook));' \
             '}' > "$fixture/lib/web.dart"
           cd "$fixture"
           dart pub get

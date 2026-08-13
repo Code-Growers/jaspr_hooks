@@ -15,8 +15,12 @@ class HookDemo extends StatelessComponent {
 
   static const Set<String> supportedNames = <String>{
     'use',
+    'useAbortController',
+    'useActiveElement',
+    'useAnimationFrame',
     'useAsyncAction',
     'useCallback',
+    'useClipboard',
     'useContext',
     'useCounter',
     'useDebounced',
@@ -26,9 +30,14 @@ class HookDemo extends StatelessComponent {
     'useEffectOnce',
     'useElementSize',
     'useEventListener',
+    'useEvent',
     'useExternalStore',
     'useFuture',
+    'useFocus',
+    'useFocusWithin',
     'useHover',
+    'useHistoryState',
+    'useId',
     'useImperativeHandle',
     'useInherited',
     'useIntersection',
@@ -88,8 +97,12 @@ class HookDemo extends StatelessComponent {
   Component _buildDemo(String name, BuildContext context) {
     return switch (name) {
       'use' => _useDemo(),
+      'useAbortController' => _useAbortControllerDemo(),
+      'useActiveElement' => _useActiveElementDemo(),
+      'useAnimationFrame' => _useAnimationFrameDemo(),
       'useAsyncAction' => _useAsyncActionDemo(),
       'useCallback' => _useCallbackDemo(),
+      'useClipboard' => _useClipboardDemo(),
       'useContext' => _useContextDemo(),
       'useCounter' => _useCounterDemo(),
       'useDebounced' => _useDebouncedDemo(),
@@ -99,9 +112,14 @@ class HookDemo extends StatelessComponent {
       'useEffectOnce' => _useEffectOnceDemo(),
       'useElementSize' => _useElementSizeDemo(),
       'useEventListener' => _useEventListenerDemo(),
+      'useEvent' => _useEventDemo(),
       'useExternalStore' => _useExternalStoreDemo(),
       'useFuture' => _useFutureDemo(context),
+      'useFocus' => _useFocusDemo(),
+      'useFocusWithin' => _useFocusWithinDemo(),
       'useHover' => _useHoverDemo(),
+      'useHistoryState' => _useHistoryStateDemo(),
+      'useId' => _useIdDemo(),
       'useImperativeHandle' => _useImperativeHandleDemo(),
       'useInherited' => _useInheritedDemo(),
       'useIntersection' => _useIntersectionDemo(),
@@ -173,6 +191,34 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useAbortControllerDemo() {
+    final ValueNotifier<int> generation = useState<int>(0);
+    final web.AbortController? controller = hooks_web.useAbortController(<Object?>[generation.value]);
+    return _row(<Component>[
+      _action('Replace controller', () => generation.value++),
+      _output('Generation ${generation.value} • controller ${controller == null ? 'waiting' : 'ready'}'),
+    ]);
+  }
+
+  Component _useActiveElementDemo() {
+    final GlobalNodeKey<web.HTMLButtonElement> key = hooks_web.useNodeKey<web.HTMLButtonElement>();
+    final web.Element? active = hooks_web.useActiveElement();
+    return _row(<Component>[
+      _action('Focus this button', () => key.currentNode?.focus(), key: key),
+      _output('Active element: ${active?.tagName.toLowerCase() ?? 'none'}'),
+    ]);
+  }
+
+  Component _useAnimationFrameDemo() {
+    final ToggleController running = useToggle(false);
+    final ValueNotifier<int> frames = useState<int>(0);
+    hooks_web.useAnimationFrame((timestamp) => frames.value++, enabled: running.value && frames.value < 12);
+    return _row(<Component>[
+      _action(running.value ? 'Pause frames' : 'Run frames', running.toggle),
+      _output('Animation frames: ${frames.value}'),
+    ]);
+  }
+
   Component _useCallbackDemo() {
     final ValueNotifier<int> count = useState<int>(0);
     final ValueNotifier<int> calls = useState<int>(0);
@@ -183,6 +229,16 @@ class HookDemo extends StatelessComponent {
     return _row(<Component>[
       _action('Call stable callback', increment),
       _output('Count ${count.value} • callback calls ${calls.value}'),
+    ]);
+  }
+
+  Component _useClipboardDemo() {
+    final hooks_web.ClipboardController clipboard = hooks_web.useClipboard();
+    return _row(<Component>[
+      _action('Copy demo text', () {
+        unawaited(clipboard.writeText('jaspr_hooks').catchError((_) {}));
+      }),
+      _output('Clipboard: ${clipboard.status.name}${clipboard.text == null ? '' : ' • ${clipboard.text}'}'),
     ]);
   }
 
@@ -282,6 +338,19 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useEventDemo() {
+    final ValueNotifier<int> multiplier = useState<int>(2);
+    final StableEventCallback<int, int> multiply = useEvent<int, int>((value) => value * multiplier.value);
+    final ValueNotifier<int> result = useState<int>(0);
+    return _row(<Component>[
+      _action('Invoke latest handler', () {
+        multiplier.value++;
+        result.value = multiply(3);
+      }),
+      _output('Multiplier ${multiplier.value} • result ${result.value}'),
+    ]);
+  }
+
   Component _useExternalStoreDemo() {
     final _DemoExternalStore store = useDisposable<_DemoExternalStore>(
       _DemoExternalStore.new,
@@ -315,12 +384,56 @@ class HookDemo extends StatelessComponent {
     ]);
   }
 
+  Component _useFocusDemo() {
+    final GlobalNodeKey<web.HTMLButtonElement> key = hooks_web.useNodeKey<web.HTMLButtonElement>();
+    final hooks_web.FocusController focus = hooks_web.useFocus(key);
+    return _row(<Component>[
+      button(key: key, classes: 'hook-demo-action hook-demo-action-secondary', [Component.text('Focus target')]),
+      _action('Request focus', focus.focus),
+      _output('Focused: ${focus.hasFocus ?? 'waiting'}'),
+    ]);
+  }
+
+  Component _useFocusWithinDemo() {
+    final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
+    final bool? focusedWithin = hooks_web.useFocusWithin(key);
+    return _row(<Component>[
+      div(key: key, [
+        button(classes: 'hook-demo-action hook-demo-action-secondary', [Component.text('Nested focus target')]),
+      ]),
+      _output('Focus within: ${focusedWithin ?? 'waiting'}'),
+    ]);
+  }
+
   Component _useHoverDemo() {
     final GlobalNodeKey<web.HTMLDivElement> key = hooks_web.useNodeKey<web.HTMLDivElement>();
     final bool? hovering = hooks_web.useHover(key);
     return _row(<Component>[
       div(key: key, classes: 'hook-demo-hover-target', <Component>[Component.text('Hover me')]),
       _output(hovering == null ? 'Waiting for browser…' : 'Hovering: $hovering'),
+    ]);
+  }
+
+  Component _useHistoryStateDemo() {
+    final hooks_web.HistoryController? history = hooks_web.useHistoryState();
+    final ValueNotifier<int> step = useState<int>(0);
+    return _row(<Component>[
+      _action('Replace history state', () {
+        step.value++;
+        history?.replace(
+          Uri(path: web.window.location.pathname, queryParameters: <String, String>{'demoStep': '${step.value}'}),
+        );
+      }),
+      _output('History: ${history?.entry.uri.queryParameters['demoStep'] ?? 'waiting'}'),
+    ]);
+  }
+
+  Component _useIdDemo() {
+    final String id = useId(prefix: 'demo');
+    final ValueNotifier<int> rebuilds = useState<int>(0);
+    return _row(<Component>[
+      _action('Rebuild with same id', () => rebuilds.value++),
+      _output('ID $id • rebuilds ${rebuilds.value}'),
     ]);
   }
 
@@ -770,8 +883,9 @@ class HookDemo extends StatelessComponent {
 
   Component _row(List<Component> children) => div(classes: 'hook-demo-row', children);
 
-  Component _action(String label, VoidCallback onClick) {
+  Component _action(String label, VoidCallback onClick, {Key? key}) {
     return button(
+      key: key,
       classes: 'hook-demo-action',
       attributes: const <String, String>{'data-testid': 'hook-action'},
       onClick: onClick,

@@ -8,6 +8,40 @@ abstract interface class BrowserSubscription {
 
 web.EventTarget? get defaultEventTarget => null;
 
+web.AbortController? createAbortController() => null;
+
+web.Element? readActiveElement() => null;
+
+bool? readFocus(web.Element target, {required bool within}) => null;
+
+BrowserSubscription? watchFocus(void Function(web.Element? value) callback) => null;
+
+void focusElement(web.HTMLElement target, {required bool preventScroll}) {}
+
+void blurElement(web.HTMLElement target) {}
+
+BrowserSubscription? watchAnimationFrames(void Function(Duration timestamp) callback) => null;
+
+HistoryEntry? readHistoryEntry() => null;
+
+BrowserSubscription? watchHistory(void Function(HistoryEntry value) callback) => null;
+
+void pushHistory(Uri uri, Object? state) => throw UnsupportedError('Browser history is unavailable.');
+
+void replaceHistory(Uri uri, Object? state) => throw UnsupportedError('Browser history is unavailable.');
+
+void historyBack() => throw UnsupportedError('Browser history is unavailable.');
+
+void historyForward() => throw UnsupportedError('Browser history is unavailable.');
+
+void historyGo(int delta) => throw UnsupportedError('Browser history is unavailable.');
+
+bool get clipboardSupported => false;
+
+Future<String> readClipboardText() => Future<String>.error(UnsupportedError('Clipboard API is unavailable.'));
+
+Future<void> writeClipboardText(String value) => Future<void>.error(UnsupportedError('Clipboard API is unavailable.'));
+
 BrowserSubscription? watchElementSize(
   web.Element target,
   ResizeObserverBox box,

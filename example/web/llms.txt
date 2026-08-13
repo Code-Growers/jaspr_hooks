@@ -12,7 +12,7 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.1.0-dev.3
+Current package version: 0.1.0
 Dart constraint: >=3.8.0 <4.0.0
 Jaspr constraint: >=0.23.3 <0.24.0 (Jaspr 0.23.x only)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
@@ -29,7 +29,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.1.0-dev.3
+      jaspr_hooks: ^0.1.0
 
 Use the universal entry point for components that do not expose native DOM types:
 
@@ -93,6 +93,8 @@ Jaspr constructs independent hook state on the server and browser. Hook state is
 - useAsyncAction and useOptimistic expose deterministic initial values during SSR. AsyncAction.dispatch and optimistic mutation methods throw there; keep all action mutations in browser event handlers.
 - Browser lifecycle value hooks return unknown during SSR and the first hydration build. They read browser state and subscribe after the first client frame. Their change-callback variants do not fire for that initial synchronization.
 - Browser DOM hooks from package:jaspr_hooks/web.dart attach after the first client frame. Value hooks return null before attachment; useNodeKey has no currentNode on the server; event and observer callbacks do not run there.
+- useId derives deterministic markup ids from tree and hook position. useEvent returns a stable callable whose latest handler works on server and client.
+- Focus, active-element, abort-controller, animation-frame, history, and clipboard hooks are browser-only. They expose null or inert controller state during SSR and activate after the first client frame.
 - Never conditionally skip a hook because context.binding.isClient is false. Select a nullable source or branch inside an effect while preserving hook call order.
 
 Safe async source pattern:
@@ -158,6 +160,7 @@ Related exported types:
 - MediaQueryMatch has unknown, matches, and doesNotMatch values. PreferredMotion has unknown, reduce, and noPreference values.
 - Browser lifecycle callback typedefs receive previous and current enum values.
 - ElementSize, WindowSize, IntersectionSnapshot, ResizeObserverBox, WindowSizeOptions, IntersectionOptions, WebEventListenerOptions, and MutationObserverOptions support package:jaspr_hooks/web.dart.
+- StableEventCallback<T, R> supports useEvent. FocusController, HistoryEntry, HistoryController, ClipboardStatus, ClipboardController, and AnimationFrameCallback support the new browser integrations.
 
 ## API reference: framework
 
@@ -170,6 +173,16 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/custom-hook/
 Signature: BuildContext useContext()
 Returns the BuildContext of the currently building hook host. Works during server and client builds. Calling it outside an active hook build throws StateError.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-context/
+
+### useId
+Signature: String useId({String prefix = 'jh'})
+Returns a deterministic HTML id based on component-tree and hook position. It stays stable across rebuilds and matches between SSR and hydration when tree and hook order match. Changing prefix replaces the id; empty prefixes throw ArgumentError.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-id/
+
+### useEvent
+Signature: StableEventCallback<T, R> useEvent<T, R>(R Function(T value) handler)
+Returns one stable callable that always invokes the latest handler. Use a record argument for multi-value events. It owns no browser resource and works during server and client builds.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-event/
 
 ## API reference: foundation
 
@@ -430,6 +443,41 @@ These APIs require import 'package:jaspr_hooks/web.dart'. Import package:univers
 Signature: GlobalNodeKey<T> useNodeKey<T extends web.Node>({String? debugLabel})
 Creates one stable key for a rendered browser node. Attach it to exactly one simultaneous component. currentNode is absent during SSR and before attachment; DOM hooks reconcile attached-node changes after frames. The initial debugLabel is preserved with key identity.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-node-key/
+
+### useFocus
+Signature: FocusController useFocus(GlobalNodeKey<web.HTMLElement> target, {bool enabled = true})
+Returns a stable controller with nullable hasFocus plus focus and blur operations. It attaches after rendering, follows target/enabled changes, and cleans its document focus listener on replacement or disposal. SSR state is null; calling imperative methods before attachment throws StateError.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-focus/
+
+### useFocusWithin
+Signature: bool? useFocusWithin(GlobalNodeKey<web.Element> target, {bool enabled = true})
+Returns whether focus is on the keyed element or a descendant. It is null during SSR, while disabled, and before attachment. The owned focus listener reconnects for target changes and is removed on disposal.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-focus-within/
+
+### useActiveElement
+Signature: web.Element? useActiveElement()
+Tracks document.activeElement after hydration and rebuilds for focus transitions. It returns null during SSR and first hydration, owns one document listener, and releases it on disposal. Do not retain old returned nodes across rebuilds.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-active-element/
+
+### useAbortController
+Signature: web.AbortController? useAbortController([List<Object?> keys = const []])
+Creates a controller after browser attachment and aborts it when ordered keys change or the hook unmounts. It returns null during SSR and first hydration. Do not reuse an aborted signal.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-abort-controller/
+
+### useAnimationFrame
+Signature: void useAnimationFrame(AnimationFrameCallback callback, {bool enabled = true})
+Owns a repeating requestAnimationFrame loop that invokes the latest callback with a Duration timestamp. Disabling or disposing cancels the pending frame. It schedules nothing during SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-animation-frame/
+
+### useHistoryState
+Signature: HistoryController? useHistoryState()
+Returns a post-frame controller containing the current URI/state with push, replace, back, forward, and go operations. Own push/replace changes update synchronously; popstate handles traversal. SSR and first hydration return null. State must be structured-clone compatible.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-history-state/
+
+### useClipboard
+Signature: ClipboardController useClipboard()
+Returns a stable plain-text Clipboard API controller with isSupported, status, text, error, readText, and writeText. It starts inert during SSR and activates after hydration. Operations require browser support, a secure context, permission, and usually a user gesture; always handle rejected Futures.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-clipboard/
 
 ### useElementSize
 Signature: ElementSize? useElementSize(GlobalNodeKey<web.Element> target, {ResizeObserverBox box = ResizeObserverBox.contentBox})

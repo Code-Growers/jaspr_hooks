@@ -349,6 +349,119 @@ void main() {
     node.dispatchEvent(web.Event('jaspr-hooks-null-target'));
     expect(events, 1);
   });
+
+  testClient('browser utility hooks activate, update, and dispose', (tester) async {
+    final harness = TestHarnessController();
+    GlobalNodeKey<web.HTMLDivElement>? regionKey;
+    GlobalNodeKey<web.HTMLInputElement>? inputKey;
+    FocusController? focus;
+    bool? focusWithin;
+    web.Element? activeElement;
+    web.AbortController? abortController;
+    HistoryController? history;
+    ClipboardController? clipboard;
+    var animationFrames = 0;
+    var animate = true;
+
+    final originalUri = Uri.parse(web.window.location.href);
+    final originalState = web.window.history.state;
+    final fakeClipboard = JSObject()
+      ..setProperty(
+        'readText'.toJS,
+        (() => Future<JSString>.value('from clipboard'.toJS).toJS).toJS,
+      )
+      ..setProperty(
+        'writeText'.toJS,
+        ((JSString value) => Future<JSAny?>.value().toJS).toJS,
+      );
+    final restoreClipboard = _overrideJsProperty(
+      web.window.navigator as JSObject,
+      'clipboard',
+      fakeClipboard,
+    );
+
+    try {
+      tester.pumpComponent(
+        TestHarness(
+          controller: harness,
+          builder: () => HookBuilder(
+            builder: (context) {
+              final region = useNodeKey<web.HTMLDivElement>();
+              final inputNode = useNodeKey<web.HTMLInputElement>();
+              regionKey = region;
+              inputKey = inputNode;
+              focus = useFocus(inputNode);
+              focusWithin = useFocusWithin(region);
+              activeElement = useActiveElement();
+              abortController = useAbortController();
+              history = useHistoryState();
+              clipboard = useClipboard();
+              useAnimationFrame((timestamp) => animationFrames++, enabled: animate);
+              return div(key: region, [
+                input(key: inputNode, id: 'hook-focus-target'),
+              ]);
+            },
+          ),
+        ),
+      );
+
+      await pumpEventQueue();
+
+      expect(abortController, isNotNull);
+      expect(history, isNotNull);
+      expect(clipboard!.isSupported, isTrue);
+      expect(animationFrames, greaterThan(0));
+
+      focus!.focus();
+      await pumpEventQueue();
+      expect(focus!.hasFocus, isTrue);
+      expect(focusWithin, isTrue);
+      expect(activeElement, same(inputKey!.currentNode));
+
+      focus!.blur();
+      await pumpEventQueue();
+      expect(focus!.hasFocus, isFalse);
+      expect(focusWithin, isFalse);
+
+      history!.push(
+        Uri(path: '/hook-history', queryParameters: const {'step': '1'}),
+        state: const {'step': 1},
+      );
+      expect(history!.entry.uri.path, '/hook-history');
+      expect(history!.entry.uri.queryParameters['step'], '1');
+      history!.replace(
+        Uri(path: '/hook-history', fragment: 'done'),
+        state: const {'step': 2},
+      );
+      expect(history!.entry.uri.fragment, 'done');
+
+      await clipboard!.writeText('written');
+      expect(clipboard!.text, 'written');
+      expect(clipboard!.status, ClipboardStatus.success);
+      expect(await clipboard!.readText(), 'from clipboard');
+      expect(clipboard!.text, 'from clipboard');
+
+      final framesBeforeDisable = animationFrames;
+      animate = false;
+      harness.rebuild();
+      await pumpEventQueue();
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      expect(animationFrames, lessThanOrEqualTo(framesBeforeDisable + 1));
+
+      final ownedAbortController = abortController!;
+      final ownedHistory = history!;
+      final ownedClipboard = clipboard!;
+      harness.unmountChild();
+      await pumpEventQueue();
+      expect(ownedAbortController.signal.aborted, isTrue);
+      expect(() => ownedHistory.push(Uri(path: '/detached')), throwsStateError);
+      expect(ownedClipboard.writeText('detached'), throwsStateError);
+      expect(regionKey!.currentNode, isNull);
+    } finally {
+      web.window.history.replaceState(originalState, '', originalUri.toString());
+      restoreClipboard();
+    }
+  });
 }
 
 @JS('Object.defineProperty')

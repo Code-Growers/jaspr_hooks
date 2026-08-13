@@ -22,6 +22,83 @@ R use<R>(Hook<R> hook) {
   return element._use(hook);
 }
 
+/// A stable callable that always invokes the latest handler supplied to
+/// [useEvent].
+abstract interface class StableEventCallback<T, R> {
+  /// Invokes the current event handler with [value].
+  R call(T value);
+}
+
+/// Returns a stable callback that always invokes the latest [handler].
+///
+/// Unlike [useCallback], changing [handler] never changes the returned
+/// callback's identity. Use a record as [T] when an event carries multiple
+/// values.
+StableEventCallback<T, R> useEvent<T, R>(R Function(T value) handler) {
+  return use(_EventHook<T, R>(handler));
+}
+
+class _EventHook<T, R> extends Hook<StableEventCallback<T, R>> {
+  const _EventHook(this.handler);
+
+  final R Function(T value) handler;
+
+  @override
+  _EventHookState<T, R> createState() => _EventHookState<T, R>();
+}
+
+class _EventHookState<T, R> extends HookState<StableEventCallback<T, R>, _EventHook<T, R>>
+    implements StableEventCallback<T, R> {
+  @override
+  R call(T value) => hook.handler(value);
+
+  @override
+  StableEventCallback<T, R> build(BuildContext context) => this;
+}
+
+/// Returns an HTML id that is stable across rebuilds, server rendering, and
+/// hydration when the component tree and hook order match.
+String useId({String prefix = 'jh'}) {
+  if (prefix.isEmpty) {
+    throw ArgumentError.value(prefix, 'prefix', 'must not be empty');
+  }
+  final element = _HookElement._currentHookElement;
+  if (element == null) {
+    throw StateError('useId() can only be called while a hook component is building.');
+  }
+  return use(_IdHook(prefix, element._currentHookIndex));
+}
+
+class _IdHook extends Hook<String> {
+  _IdHook(this.prefix, this.hookIndex) : super(keys: <Object?>[prefix]);
+
+  final String prefix;
+  final int hookIndex;
+
+  @override
+  _IdHookState createState() => _IdHookState();
+}
+
+class _IdHookState extends HookState<String, _IdHook> {
+  String? _value;
+
+  @override
+  String build(BuildContext context) {
+    return _value ??= _elementPath(context as Element, hook.hookIndex, hook.prefix);
+  }
+}
+
+String _elementPath(Element element, int hookIndex, String prefix) {
+  final indices = <int>[];
+  Element? current = element;
+  while (current?.parent != null) {
+    indices.add(current!.slot.index);
+    current = current.parent;
+  }
+  final path = indices.reversed.join('-');
+  return path.isEmpty ? '$prefix-$hookIndex' : '$prefix-$path-$hookIndex';
+}
+
 /// Immutable configuration for a reusable piece of lifecycle-aware state.
 ///
 /// A custom hook normally subclasses this class and returns its mutable state
@@ -241,6 +318,7 @@ mixin _HookElement on BuildableElement {
   bool? _isOptionalRebuild = false;
   Component? _buildCache;
   bool _isInitializingHook = false;
+  int _currentHookIndex = 0;
 
   @override
   void update(covariant Component newComponent) {
@@ -269,6 +347,7 @@ mixin _HookElement on BuildableElement {
     }
 
     _currentHookState = _hooks.isEmpty ? null : _hooks.first;
+    _currentHookIndex = 0;
     final previousElement = _currentHookElement;
     _currentHookElement = this;
     try {
@@ -283,6 +362,7 @@ mixin _HookElement on BuildableElement {
   }
 
   R _use<R>(Hook<R> hook) {
+    _currentHookIndex++;
     if (_currentHookState == null) {
       _appendHook(hook);
     } else if (hook.runtimeType != _currentHookState!.value.hook.runtimeType) {

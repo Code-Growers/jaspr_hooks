@@ -11,15 +11,14 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.1.0-dev.3` is a preview. The API is intentionally being validated in real
-> Jaspr applications before `0.1.0`.
+> Current stable release: `0.1.0`.
 
 ## Install
 
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.0-dev.3
+  jaspr_hooks: ^0.1.0
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
@@ -62,7 +61,7 @@ For lower-level lifecycle objects, extend `Hook<R>` and
 
 | Category | Hooks |
 | --- | --- |
-| Framework | `use`, `useContext` |
+| Framework | `use`, `useContext`, `useId`, `useEvent` |
 | Foundation | `useLatest`, `useDisposable`, `useExternalStore`, `useInherited`, `useImperativeHandle`, `useTimeout`, `useInterval` |
 | Primitives | `useState`, `useEffect`, `usePostFrameEffect`, `useMemoized`, `useCallback`, `useRef`, `useValueChanged` |
 | Lifecycle/state | `usePrevious`, `useReducer`, `useIsMounted`, `useDebounced` |
@@ -71,7 +70,7 @@ For lower-level lifecycle objects, extend `Hook<R>` and
 | Actions | `useAsyncAction`, `useOptimistic` |
 | Listenables | `useListenable`, `useListenableSelector`, `useValueNotifier`, `useValueListenable`, `useOnListenableChange` |
 | Browser lifecycle | `useDocumentVisibility`, `useOnDocumentVisibilityChange`, `usePreferredColorScheme`, `useOnPreferredColorSchemeChange`, `useMediaQuery`, `useOnMediaQueryChange`, `usePreferredMotion`, `useOnPreferredMotionChange` |
-| Browser DOM | `useNodeKey`, `useElementSize`, `useWindowSize`, `useIntersection`, `useEventListener`, `useOnClickOutside`, `useHover`, `useMutationObserver` |
+| Browser DOM | `useNodeKey`, `useFocus`, `useFocusWithin`, `useActiveElement`, `useAbortController`, `useAnimationFrame`, `useHistoryState`, `useClipboard`, `useElementSize`, `useWindowSize`, `useIntersection`, `useEventListener`, `useOnClickOutside`, `useHover`, `useMutationObserver` |
 
 The universal entry point contains every hook except direct DOM integrations:
 
@@ -106,7 +105,7 @@ tree in the browser. Hook state is therefore not serialized automatically.
 | `useExternalStore` | Requires `getServerSnapshot` | Hydrates from the server snapshot, then subscribes |
 | Async and optimistic actions | Read deterministic initial state; do not mutate | Dispatch and mutate from event handlers |
 | Browser lifecycle value hooks | Return `unknown` | Synchronize after the first frame |
-| Browser DOM value hooks | Return `null` or an unattached key | Attach after the first frame |
+| Browser DOM value hooks | Return inert state, `null`, or an unattached key | Attach after the first frame |
 
 Pass async sources conditionally:
 

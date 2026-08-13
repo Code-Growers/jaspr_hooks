@@ -62,6 +62,18 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     summary: 'Returns the BuildContext of the currently building hook component.',
   ),
   HookDoc(
+    name: 'useId',
+    slug: 'use-id',
+    category: HookCategory.framework,
+    summary: 'Creates a deterministic hydration-safe HTML id.',
+  ),
+  HookDoc(
+    name: 'useEvent',
+    slug: 'use-event',
+    category: HookCategory.framework,
+    summary: 'Keeps callback identity stable while invoking the latest handler.',
+  ),
+  HookDoc(
     name: 'useLatest',
     slug: 'use-latest',
     category: HookCategory.foundation,
@@ -348,6 +360,48 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     slug: 'use-node-key',
     category: HookCategory.web,
     summary: 'Creates a stable GlobalNodeKey for browser DOM hooks.',
+  ),
+  HookDoc(
+    name: 'useFocus',
+    slug: 'use-focus',
+    category: HookCategory.web,
+    summary: 'Tracks and imperatively controls focus for a keyed element.',
+  ),
+  HookDoc(
+    name: 'useFocusWithin',
+    slug: 'use-focus-within',
+    category: HookCategory.web,
+    summary: 'Tracks focus on a keyed element or any descendant.',
+  ),
+  HookDoc(
+    name: 'useActiveElement',
+    slug: 'use-active-element',
+    category: HookCategory.web,
+    summary: 'Tracks the active element in the browser document.',
+  ),
+  HookDoc(
+    name: 'useAbortController',
+    slug: 'use-abort-controller',
+    category: HookCategory.web,
+    summary: 'Owns and automatically aborts a browser AbortController.',
+  ),
+  HookDoc(
+    name: 'useAnimationFrame',
+    slug: 'use-animation-frame',
+    category: HookCategory.web,
+    summary: 'Runs the latest callback on browser animation frames.',
+  ),
+  HookDoc(
+    name: 'useHistoryState',
+    slug: 'use-history-state',
+    category: HookCategory.web,
+    summary: 'Observes and controls same-document session history.',
+  ),
+  HookDoc(
+    name: 'useClipboard',
+    slug: 'use-clipboard',
+    category: HookCategory.web,
+    summary: 'Owns plain-text Clipboard API operation state.',
   ),
   HookDoc(
     name: 'useElementSize',

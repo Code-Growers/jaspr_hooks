@@ -249,6 +249,70 @@ for (const hook of hookPages) {
   });
 }
 
+test('new 0.1.0 hooks preserve identity and react to browser APIs', async ({page}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        readText: async () => 'browser clipboard',
+        writeText: async (text: string) => {
+          (window as Window & {__jasprHooksCopiedText?: string})
+            .__jasprHooksCopiedText = text;
+        },
+      },
+    });
+  });
+
+  await page.goto('hooks/use-id/', {waitUntil: 'networkidle'});
+  const idOutput = page.getByTestId('hook-output').first();
+  const initialId = (await idOutput.textContent())?.match(/ID ([^ ]+)/)?.[1];
+  expect(initialId).toBeTruthy();
+  await page.getByTestId('hook-action').first().click();
+  await expect(idOutput).toContainText(`ID ${initialId}`);
+
+  await page.goto('hooks/use-event/', {waitUntil: 'networkidle'});
+  await page.getByTestId('hook-action').first().click();
+  await expect(page.getByTestId('hook-output').first()).toContainText(
+    /Multiplier 3 .* result 9/,
+  );
+
+  await page.goto('hooks/use-focus/', {waitUntil: 'networkidle'});
+  await page.getByTestId('hook-action').first().click();
+  await expect(page.getByTestId('hook-output').first()).toContainText(/Focused: true/);
+
+  await page.goto('hooks/use-focus-within/', {waitUntil: 'networkidle'});
+  await page
+    .getByRole('button', {name: 'Nested focus target'})
+    .evaluate((element: HTMLButtonElement) => element.focus());
+  await expect(page.getByTestId('hook-output').first()).toContainText(/Focus within: true/);
+
+  await page.goto('hooks/use-history-state/', {waitUntil: 'networkidle'});
+  await page.getByTestId('hook-action').first().click();
+  await expect(page).toHaveURL(/demoStep=1/);
+  await expect(page.getByTestId('hook-output').first()).toContainText(/History: 1/);
+
+  await page.goto('hooks/use-clipboard/', {waitUntil: 'networkidle'});
+  await page.getByTestId('hook-action').first().click();
+  await expect(page.getByTestId('hook-output').first()).toContainText(
+    /Clipboard: success .* jaspr_hooks/,
+  );
+  expect(
+    await page.evaluate(
+      () => (window as Window & {__jasprHooksCopiedText?: string})
+        .__jasprHooksCopiedText,
+    ),
+  ).toBe('jaspr_hooks');
+
+  await page.goto('hooks/use-animation-frame/', {waitUntil: 'networkidle'});
+  await page.getByTestId('hook-action').first().click();
+  await expect
+    .poll(async () => {
+      const output = await page.getByTestId('hook-output').first().textContent();
+      return Number(output?.match(/(\d+)/)?.[1] ?? 0);
+    })
+    .toBeGreaterThan(0);
+});
+
 test('preferred color scheme follows browser media changes', async ({page}) => {
   await page.emulateMedia({colorScheme: 'light'});
   await page.goto('hooks/use-preferred-color-scheme/', {waitUntil: 'networkidle'});

@@ -1,3 +1,11 @@
+# 0.1.0
+
+- Added deterministic `useId` and stable latest-handler `useEvent` hooks.
+- Added focus, active-element, abort-controller, animation-frame, history, and
+  clipboard hooks to the browser entry point.
+- Expanded the interactive catalog, SSR coverage, lifecycle tests, and
+  production-browser validation to all 66 exported hooks.
+
 # 0.1.0-dev.3
 
 - Added foundation hooks for latest values, owned resources, external stores,

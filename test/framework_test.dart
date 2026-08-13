@@ -118,6 +118,83 @@ void main() {
     });
   });
 
+  group('identity and event hooks', () {
+    testComponents('useEvent keeps identity and invokes the latest handler', (tester) async {
+      final harness = TestHarnessController();
+      var multiplier = 2;
+      StableEventCallback<int, int>? callback;
+      StableEventCallback<int, int>? first;
+
+      tester.pumpComponent(
+        TestHarness(
+          controller: harness,
+          builder: () => HookBuilder(
+            builder: (context) {
+              callback = useEvent<int, int>((value) => value * multiplier);
+              first ??= callback;
+              return const Component.empty();
+            },
+          ),
+        ),
+      );
+
+      expect(callback!(3), 6);
+      multiplier = 4;
+      harness.rebuild();
+      await tester.pump();
+      expect(callback, same(first));
+      expect(first!(3), 12);
+    });
+
+    testComponents('useId is stable, unique by hook slot, and prefix-aware', (tester) async {
+      final harness = TestHarnessController();
+      var prefix = 'field';
+      var ids = <String>[];
+
+      tester.pumpComponent(
+        TestHarness(
+          controller: harness,
+          builder: () => HookBuilder(
+            builder: (context) {
+              ids = <String>[useId(prefix: prefix), useId(prefix: prefix)];
+              return Component.text(ids.join(','));
+            },
+          ),
+        ),
+      );
+
+      final initial = List<String>.of(ids);
+      expect(initial.toSet(), hasLength(2));
+      expect(initial, everyElement(startsWith('field-')));
+
+      harness.rebuild();
+      await tester.pump();
+      expect(ids, initial);
+
+      prefix = 'dialog';
+      harness.rebuild();
+      await tester.pump();
+      expect(ids, everyElement(startsWith('dialog-')));
+      expect(ids, isNot(initial));
+    });
+
+    test('useId rejects invalid prefixes', () async {
+      expect(() => useId(), throwsStateError);
+      final binding = CapturingTestComponentsBinding(isClient: true);
+      addTearDown(binding.detachRootComponent);
+      binding.attachRootComponent(
+        HookBuilder(
+          builder: (context) {
+            useId(prefix: '');
+            return const Component.empty();
+          },
+        ),
+      );
+      await binding.pump();
+      expect(binding.errors.single.error, isA<ArgumentError>());
+    });
+  });
+
   group('ordered runtime', () {
     test('Hook.shouldPreserveState compares ordered key contents', () {
       final events = <String>[];

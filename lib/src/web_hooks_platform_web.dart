@@ -26,6 +26,101 @@ final class _CallbackSubscription implements BrowserSubscription {
 
 web.EventTarget get defaultEventTarget => web.window;
 
+web.AbortController? createAbortController() {
+  try {
+    return web.AbortController();
+  } catch (_) {
+    return null;
+  }
+}
+
+web.Element? readActiveElement() => web.document.activeElement;
+
+bool readFocus(web.Element target, {required bool within}) {
+  final active = readActiveElement();
+  if (active == null) return false;
+  return identical(active, target) || (within && target.contains(active));
+}
+
+BrowserSubscription watchFocus(void Function(web.Element? value) callback) {
+  final listener = ((web.Event _) => callback(readActiveElement())).toJS;
+  web.document
+    ..addEventListener('focusin', listener, true.toJS)
+    ..addEventListener('focusout', listener, true.toJS);
+  return _CallbackSubscription(() {
+    web.document
+      ..removeEventListener('focusin', listener, true.toJS)
+      ..removeEventListener('focusout', listener, true.toJS);
+  });
+}
+
+void focusElement(web.HTMLElement target, {required bool preventScroll}) {
+  target.focus(web.FocusOptions(preventScroll: preventScroll));
+}
+
+void blurElement(web.HTMLElement target) => target.blur();
+
+BrowserSubscription watchAnimationFrames(void Function(Duration timestamp) callback) {
+  var cancelled = false;
+  var requestId = 0;
+  late web.FrameRequestCallback listener;
+  listener = ((num timestamp) {
+    if (cancelled) return;
+    callback(Duration(microseconds: (timestamp * 1000).round()));
+    requestId = web.window.requestAnimationFrame(listener);
+  }).toJS;
+  requestId = web.window.requestAnimationFrame(listener);
+  return _CallbackSubscription(() {
+    cancelled = true;
+    web.window.cancelAnimationFrame(requestId);
+  });
+}
+
+HistoryEntry readHistoryEntry() {
+  return HistoryEntry(
+    uri: Uri.parse(web.window.location.href),
+    state: web.window.history.state?.dartify(),
+  );
+}
+
+BrowserSubscription watchHistory(void Function(HistoryEntry value) callback) {
+  final listener = ((web.Event _) => callback(readHistoryEntry())).toJS;
+  web.window.addEventListener('popstate', listener);
+  return _CallbackSubscription(() => web.window.removeEventListener('popstate', listener));
+}
+
+void pushHistory(Uri uri, Object? state) {
+  web.window.history.pushState(state.jsify(), '', uri.toString());
+}
+
+void replaceHistory(Uri uri, Object? state) {
+  web.window.history.replaceState(state.jsify(), '', uri.toString());
+}
+
+void historyBack() => web.window.history.back();
+
+void historyForward() => web.window.history.forward();
+
+void historyGo(int delta) => web.window.history.go(delta);
+
+bool get clipboardSupported {
+  try {
+    final clipboard = web.window.navigator.clipboard as JSObject;
+    return web.window.isSecureContext && _hasFunction(clipboard, 'readText') && _hasFunction(clipboard, 'writeText');
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<String> readClipboardText() async {
+  final value = await web.window.navigator.clipboard.readText().toDart;
+  return value.toDart;
+}
+
+Future<void> writeClipboardText(String value) async {
+  await web.window.navigator.clipboard.writeText(value).toDart;
+}
+
 BrowserSubscription? watchElementSize(
   web.Element target,
   ResizeObserverBox box,

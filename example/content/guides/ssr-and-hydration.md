@@ -55,7 +55,7 @@ Convenience controllers such as `useToggle`, `useCounter`, `useList`, `useMap`, 
 
 ## Browser DOM hooks
 
-DOM integration lives in `package:jaspr_hooks/web.dart`. `useNodeKey` can create a stable key on the server, but its node is unattached. `useElementSize`, `useWindowSize`, `useIntersection`, and `useHover` return `null` until client attachment, while event and observer hooks attach nothing on the server.
+DOM integration lives in `package:jaspr_hooks/web.dart`. `useNodeKey` can create a stable key on the server, but its node is unattached. `useElementSize`, `useWindowSize`, `useIntersection`, `useHover`, `useFocusWithin`, `useActiveElement`, `useAbortController`, and `useHistoryState` return `null` until client attachment. `useFocus` returns an unattached controller, `useClipboard` returns an unsupported controller, and event, observer, and animation-frame hooks attach nothing on the server.
 
 Keep a deterministic fallback in the initial markup:
 

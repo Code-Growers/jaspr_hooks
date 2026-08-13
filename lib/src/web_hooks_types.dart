@@ -7,6 +7,73 @@ typedef WebEventTargetResolver = web.EventTarget? Function();
 /// Receives DOM mutations observed for a keyed node.
 typedef WebMutationCallback = void Function(List<web.MutationRecord> records);
 
+/// Receives the high-resolution timestamp for a browser animation frame.
+typedef AnimationFrameCallback = void Function(Duration timestamp);
+
+/// The current browser history entry.
+@immutable
+final class HistoryEntry {
+  /// Creates a history entry snapshot.
+  const HistoryEntry({required this.uri, this.state});
+
+  /// The current document URI.
+  final Uri uri;
+
+  /// The structured-clone-compatible state associated with the entry.
+  final Object? state;
+
+  @override
+  bool operator ==(Object other) => other is HistoryEntry && other.uri == uri && other.state == state;
+
+  @override
+  int get hashCode => Object.hash(uri, state);
+}
+
+/// Controls and observes the browser's same-document session history.
+abstract interface class HistoryController {
+  /// The current entry.
+  HistoryEntry get entry;
+
+  /// Adds a same-document history entry.
+  void push(Uri uri, {Object? state});
+
+  /// Replaces the current same-document history entry.
+  void replace(Uri uri, {Object? state});
+
+  /// Navigates backward by one entry.
+  void back();
+
+  /// Navigates forward by one entry.
+  void forward();
+
+  /// Navigates by [delta] entries.
+  void go(int delta);
+}
+
+/// The latest clipboard operation performed by [ClipboardController].
+enum ClipboardStatus { idle, reading, writing, success, error }
+
+/// Reads and writes plain text through the browser Clipboard API.
+abstract interface class ClipboardController {
+  /// Whether the Clipboard API is available in the current browser context.
+  bool get isSupported;
+
+  /// The current operation status.
+  ClipboardStatus get status;
+
+  /// The most recently read or written text.
+  String? get text;
+
+  /// The most recent operation error.
+  Object? get error;
+
+  /// Reads plain text from the clipboard.
+  Future<String> readText();
+
+  /// Writes [value] to the clipboard.
+  Future<void> writeText(String value);
+}
+
 /// The box measured by [web.ResizeObserver].
 enum ResizeObserverBox { contentBox, borderBox, devicePixelContentBox }
 
