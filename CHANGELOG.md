@@ -1,3 +1,7 @@
+# 0.1.1
+
+- Fixed the project mascot image on pub.dev by using an absolute Markdown URL.
+
 # 0.1.0
 
 - Added deterministic `useId` and stable latest-handler `useEvent` hooks.

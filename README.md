@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/brand/jaspr_hooks_mascot_512.png" width="260" alt="A teal dog holding a fishing rod whose line ends in a hook">
-</p>
+![A teal dog holding a fishing rod whose line ends in a hook](https://raw.githubusercontent.com/Code-Growers/jaspr_hooks/main/assets/brand/jaspr_hooks_mascot_512.png)
 
 # jaspr_hooks
 
@@ -11,14 +9,14 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> Current stable release: `0.1.0`.
+> Current stable release: `0.1.1`.
 
 ## Install
 
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.0
+  jaspr_hooks: ^0.1.1
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.

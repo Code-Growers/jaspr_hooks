@@ -12,7 +12,7 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.1.0
+Current package version: 0.1.1
 Dart constraint: >=3.8.0 <4.0.0
 Jaspr constraint: >=0.23.3 <0.24.0 (Jaspr 0.23.x only)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
@@ -29,7 +29,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.1.0
+      jaspr_hooks: ^0.1.1
 
 Use the universal entry point for components that do not expose native DOM types:
 
