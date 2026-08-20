@@ -9,14 +9,14 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> Current stable release: `0.1.1`.
+> Current stable release: `0.1.2`.
 
 ## Install
 
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.1
+  jaspr_hooks: ^0.1.2
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
@@ -160,9 +160,8 @@ canonical hook catalog and package version constraints in CI.
 
 ## Status and releases
 
-Before the first pub.dev release, confirm that the package name remains
-available and configure the verified publisher. The first publication is
-manual; subsequent tag releases use pub.dev's GitHub OIDC flow.
+pub.dev releases are prepared by the repository's release checks and published
+manually from a clean local checkout.
 
 ## Credits and license
 

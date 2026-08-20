@@ -4,11 +4,7 @@ import 'dart:io';
 const _requiredUrls = <String>['repository', 'issue_tracker', 'documentation'];
 
 Future<void> main(List<String> arguments) async {
-  final requirePublished = arguments.contains('--require-published');
   final checkAvailable = arguments.contains('--check-name-available');
-  if (requirePublished && checkAvailable) {
-    _fail('Choose either --require-published or --check-name-available.');
-  }
 
   final pubspec = File('pubspec.yaml');
   if (!pubspec.existsSync()) _fail('Run this command from the package root.');
@@ -46,24 +42,15 @@ Future<void> main(List<String> arguments) async {
     _fail('Tag $tag does not match pubspec version $version ($expectedTag).');
   }
 
-  if (requirePublished || checkAvailable) {
+  if (checkAvailable) {
     final status = await _pubPackageStatus(name);
-    if (requirePublished && status != HttpStatus.ok) {
-      _fail(
-        '$name is not published on pub.dev. Publish the first release manually '
-        'before enabling OIDC tag publication.',
-      );
-    }
-    if (checkAvailable && status != HttpStatus.notFound) {
+    if (status != HttpStatus.notFound) {
       _fail('$name is no longer available on pub.dev (HTTP $status).');
     }
   }
 
   stdout.writeln('Release preflight passed for $name $version.');
-  stdout.writeln(
-    'The protected pub.dev GitHub environment must be connected to the '
-    'verified publisher before continuing.',
-  );
+  stdout.writeln('Publish manually from the verified pub.dev publisher account.');
 }
 
 Map<String, String> _topLevelScalars(List<String> lines) {

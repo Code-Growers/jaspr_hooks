@@ -251,9 +251,6 @@ class _ExternalStoreHookState<T> extends HookState<T, _ExternalStoreHook<T>> {
     if (equals != null) {
       return equals(previous, current);
     }
-    if (identical(previous, current)) {
-      return true;
-    }
     if (previous is num && current is num) {
       if (previous.isNaN && current.isNaN) {
         return true;
@@ -261,6 +258,9 @@ class _ExternalStoreHookState<T> extends HookState<T, _ExternalStoreHook<T>> {
       if (previous == 0 && current == 0) {
         return previous.isNegative == current.isNegative;
       }
+    }
+    if (identical(previous, current)) {
+      return true;
     }
     return previous == current;
   }

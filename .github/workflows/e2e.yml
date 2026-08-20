@@ -24,7 +24,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: e2e/package-lock.json
-      - run: dart pub global activate jaspr_cli 0.23.3
+      - run: dart pub global activate jaspr_cli 0.23.4
       - run: dart pub get
         working-directory: example
       - name: Build production documentation

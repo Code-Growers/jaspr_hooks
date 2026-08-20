@@ -65,7 +65,8 @@ For a first publication, also run:
 dart run tool/release_preflight.dart --check-name-available
 ```
 
-For later OIDC releases, the tag must be `v<pubspec version>` and the package must already exist on pub.dev.
+All releases are published manually with `dart pub publish`. Create the matching
+`v<pubspec version>` tag only after pub.dev confirms the release.
 
 ## Hand off safely
 

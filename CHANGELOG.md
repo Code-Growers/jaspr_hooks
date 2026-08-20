@@ -1,3 +1,12 @@
+# 0.1.2
+
+- Fixed signed-zero change detection in `useOptimistic` and `useExternalStore`
+  while continuing to treat `NaN` snapshots as equal.
+- Updated the Jaspr test, builder, example, and documentation toolchain to
+  0.23.4 and raised the compatible web compiler baseline to 4.8.0.
+- Changed pub.dev releases from tag-triggered GitHub publishing to a fully
+  manual release process.
+
 # 0.1.1
 
 - Fixed the project mascot image on pub.dev by using an absolute Markdown URL.

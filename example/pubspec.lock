@@ -37,10 +37,10 @@ packages:
     dependency: transitive
     description:
       name: archive
-      sha256: a96e8b390886ee8abb49b7bd3ac8df6f451c621619f52a26e815fdcf568959ff
+      sha256: be169cf6ac481e052c4538715d88841d567150dfe1df38aaec76461a4e7b39f2
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.9"
+    version: "4.1.0"
   args:
     dependency: transitive
     description:
@@ -381,18 +381,18 @@ packages:
     dependency: "direct main"
     description:
       name: jaspr
-      sha256: f3d96e5048ec3530734e5d05088f8b6ff37214a77d6f5cfd812735874e5c89d8
+      sha256: ce9fa2b852a07d538d39c3cf45487184a24a5d329a5c5ec2de47f251995be6aa
       url: "https://pub.dev"
     source: hosted
-    version: "0.23.3"
+    version: "0.23.4"
   jaspr_builder:
     dependency: "direct dev"
     description:
       name: jaspr_builder
-      sha256: c8d36889cc8a40e65015dae5b56d3a0c144e842eb89bddab1121a532760b3b7b
+      sha256: "470ab4f3659e04c5562d68df1904c08e0fb91678e57c90d9583143ec320d2375"
       url: "https://pub.dev"
     source: hosted
-    version: "0.23.3"
+    version: "0.23.4"
   jaspr_content:
     dependency: "direct main"
     description:
@@ -407,7 +407,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.1.1"
+    version: "0.1.2"
   jaspr_lints:
     dependency: "direct dev"
     description:
@@ -428,10 +428,10 @@ packages:
     dependency: "direct dev"
     description:
       name: jaspr_test
-      sha256: df15c4920fb534e986ccc6443c557e23280c53284b8e8ddd6a63bc09ab1a6421
+      sha256: "60a5e954039ef4af485bcb51d5613f76c072e94eebb85e28b5921d22214fa1ed"
       url: "https://pub.dev"
     source: hosted
-    version: "0.23.3"
+    version: "0.23.4"
   json_annotation:
     dependency: transitive
     description:
@@ -652,10 +652,10 @@ packages:
     dependency: transitive
     description:
       name: source_maps
-      sha256: "190222579a448b03896e0ca6eca5998fa810fda630c1d65e2f78b3f638f54812"
+      sha256: "14c2945847669b44089bb1222f66873d7ff7103c58911917f2a63c5a62327898"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.13"
+    version: "0.10.14"
   source_span:
     dependency: transitive
     description:
@@ -772,10 +772,10 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: "0016aef94fc66495ac78af5859181e3f3bf2026bd8eecc72b9565601e19ab360"
+      sha256: "5f37239c4851efcef929cea7824e76df7f2f0970aef85d66bbc430afa40e72f0"
       url: "https://pub.dev"
     source: hosted
-    version: "15.2.0"
+    version: "15.3.0"
   watcher:
     dependency: transitive
     description:

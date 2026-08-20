@@ -590,9 +590,6 @@ class _OptimisticHookState<StateT, UpdateT>
 }
 
 bool _valuesMatch(Object? previous, Object? current) {
-  if (identical(previous, current)) {
-    return true;
-  }
   if (previous is num && current is num) {
     if (previous.isNaN && current.isNaN) {
       return true;
@@ -600,6 +597,9 @@ bool _valuesMatch(Object? previous, Object? current) {
     if (previous == 0 && current == 0) {
       return previous.isNegative == current.isNegative;
     }
+  }
+  if (identical(previous, current)) {
+    return true;
   }
   return previous == current;
 }
