@@ -6,6 +6,7 @@ import 'dart:js_interop_unsafe';
 
 import 'package:jaspr/jaspr.dart';
 import 'package:jaspr_hooks/jaspr_hooks.dart';
+import 'package:jaspr_hooks/src/web_hooks_platform_web.dart' as history_platform;
 import 'package:jaspr_hooks/src/web_lifecycle_platform_web.dart' as platform;
 import 'package:jaspr_test/client_test.dart';
 import 'package:web/web.dart' as web;
@@ -131,6 +132,97 @@ void main() {
 
     expect(visibilityChanges, 0);
     expect(colorChanges, 0);
+  });
+
+  testClient('location and browser route synchronize after the first frame', (
+    tester,
+  ) async {
+    final locations = <Uri?>[];
+    final routes = <String>[];
+    final changes = <Uri>[];
+    final original = web.window.location.href;
+    addTearDown(() => web.window.history.replaceState(null, '', original));
+
+    tester.pumpComponent(
+      HookBuilder(
+        builder: (context) {
+          locations.add(useLocation());
+          routes.add(
+            useBrowserRoute<String>(
+              'server',
+              (location) => location.queryParameters['route'] ?? 'none',
+              onLocationChange: changes.add,
+            ),
+          );
+          return const Component.empty();
+        },
+      ),
+    );
+
+    expect(locations.first, isNull);
+    expect(routes.first, 'server');
+    await pumpEventQueue();
+    expect(locations.last, Uri.parse(web.window.location.href));
+    expect(routes.last, 'none');
+    expect(changes, isEmpty, reason: 'initial synchronization is not a change');
+
+    web.window.history.replaceState(null, '', '?route=next');
+    web.window.dispatchEvent(web.Event('popstate'));
+    await pumpEventQueue();
+    expect(routes.last, 'next');
+    expect(locations.last?.queryParameters['route'], 'next');
+    expect(changes.single.queryParameters['route'], 'next');
+
+    web.window.dispatchEvent(web.Event('popstate'));
+    await pumpEventQueue();
+    expect(changes, hasLength(1), reason: 'an unchanged location does not notify');
+
+    history_platform.pushHistory(Uri(path: web.window.location.pathname, queryParameters: {'route': 'pushed'}), null);
+    await pumpEventQueue();
+    expect(routes.last, 'pushed', reason: 'HistoryController navigation announces itself');
+    expect(changes, hasLength(2));
+  });
+
+  testClient('window focus fires for focus and for the document becoming visible', (
+    tester,
+  ) async {
+    final harness = TestHarnessController();
+    final document = web.document as JSObject;
+    final restoreHidden = _overrideJsProperty(document, 'hidden', true.toJS);
+    addTearDown(restoreHidden);
+    var focusEvents = 0;
+    var focusOnlyEvents = 0;
+
+    tester.pumpComponent(
+      TestHarness(
+        controller: harness,
+        builder: () => HookBuilder(
+          builder: (context) {
+            useOnWindowFocus(() => focusEvents++);
+            useOnWindowFocus(() => focusOnlyEvents++, includeVisibilityChange: false);
+            return const Component.empty();
+          },
+        ),
+      ),
+    );
+    await pumpEventQueue();
+
+    web.window.dispatchEvent(web.Event('focus'));
+    expect(focusEvents, 1);
+    expect(focusOnlyEvents, 1);
+
+    web.document.dispatchEvent(web.Event('visibilitychange'));
+    expect(focusEvents, 1, reason: 'a still-hidden document is not a refocus');
+
+    document.setProperty('hidden'.toJS, false.toJS);
+    web.document.dispatchEvent(web.Event('visibilitychange'));
+    expect(focusEvents, 2);
+    expect(focusOnlyEvents, 1);
+
+    harness.unmountChild();
+    await pumpEventQueue();
+    web.window.dispatchEvent(web.Event('focus'));
+    expect(focusEvents, 2);
   });
 
   test('visibility uses a valid vendor property and its matching event', () {

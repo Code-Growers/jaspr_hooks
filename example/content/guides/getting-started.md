@@ -9,7 +9,7 @@ Add the package to a Jaspr application:
 
 ```yaml
 dependencies:
-  jaspr_hooks: ^0.1.2
+  jaspr_hooks: ^0.2.0
 ```
 
 Import the public library and extend `HookComponent`:

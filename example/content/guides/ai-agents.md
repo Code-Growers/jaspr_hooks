@@ -50,7 +50,7 @@ import 'package:jaspr_hooks/web.dart';
 import 'package:universal_web/web.dart' as web;
 ```
 
-An agent must preserve the documented `null` or `unknown` SSR fallback for every browser-facing hook. It should supply `getServerSnapshot` to `useExternalStore`, keep actions in client event handlers, and use controller mutation methods instead of modifying collection views.
+An agent must preserve the documented `null` or `unknown` SSR fallback for every browser-facing hook. It should supply `getServerSnapshot` to `useExternalStore` when `getSnapshot` is not server-safe, keep actions in client event handlers, and use controller mutation methods instead of modifying collection views.
 
 ## Keeping agent context current
 

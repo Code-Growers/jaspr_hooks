@@ -12,7 +12,7 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.1.2
+Current package version: 0.2.0
 Dart constraint: >=3.8.0 <4.0.0
 Jaspr constraint: >=0.23.3 <0.24.0 (Jaspr 0.23.x only)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
@@ -29,7 +29,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.1.2
+      jaspr_hooks: ^0.2.0
 
 Use the universal entry point for components that do not expose native DOM types:
 
@@ -83,15 +83,17 @@ State preservation compares hook runtime type and ordered keys. Key equality fol
 
 Jaspr constructs independent hook state on the server and browser. Hook state is not serialized automatically. Keep server initializers and first client output deterministic. Use PreloadStateMixin, AsyncStatelessComponent, serialized @client properties, or jaspr_riverpod for server-loaded data.
 
-- useEffect, usePostFrameEffect, useEffectOnce, useMount, useUnmount, useUpdateEffect, useTimeout, and useInterval never run during server or static rendering.
-- useEffect runs synchronously during browser builds. usePostFrameEffect runs after the next completed browser frame.
+- useEffect, usePostFrameEffect, usePostFrameUpdateEffect, useEffectOnce, useMount, useUnmount, useUpdateEffect, useTimeout, and useInterval never run during server or static rendering.
+- useEffect runs synchronously during browser builds. usePostFrameEffect and usePostFrameUpdateEffect run after the next completed browser frame.
+- Hook state assigned while any hook component is building (for example inside useEffect) is rendered after the frame; the rebuild is replayed instead of being dropped by Jaspr's dirty flag.
 - useFuture, useStream, and useOnStreamChange accept nullable sources. Passing a non-null source during server rendering throws StateError. Always call the hook in both environments; pass null on the server and supply deterministic initialData when relevant.
 - useDebounced returns null and creates no Timer on the server. useTimeout and useInterval also create no server Timer.
 - useListenable, useValueListenable, and useListenableSelector may read deterministic current values on the server but attach no live listener. useOnListenableChange also attaches no server listener.
-- useExternalStore requires getServerSnapshot during SSR. When also supplied on the client, it preserves that snapshot through initial hydration before subscribing and reading getSnapshot.
-- useState, useMemoized, useCallback, useRef, useLatest, useDisposable, useInherited, useImperativeHandle, useReducer, usePrevious, useValueChanged, useStreamController, and convenience state controllers can initialize on either platform; their initializers must be deterministic.
+- useExternalStore reads getServerSnapshot during SSR when supplied and otherwise getSnapshot, without subscribing. When getServerSnapshot is also supplied on the client, it preserves that snapshot through initial hydration before subscribing and reading getSnapshot.
+- useState, useGuardedState, useMemoized, useCallback, useRef, useLatest, useDisposable, useInherited, useImperativeHandle, useReducer, usePrevious, useValueChanged, useStreamController, and convenience state controllers can initialize on either platform; their initializers must be deterministic.
 - useAsyncAction and useOptimistic expose deterministic initial values during SSR. AsyncAction.dispatch and optimistic mutation methods throw there; keep all action mutations in browser event handlers.
 - Browser lifecycle value hooks return unknown during SSR and the first hydration build. They read browser state and subscribe after the first client frame. Their change-callback variants do not fire for that initial synchronization.
+- useLocation returns null and useBrowserRoute returns its serverRoute during SSR and the first hydration build. useOnWindowFocus attaches after the first client frame.
 - Browser DOM hooks from package:jaspr_hooks/web.dart attach after the first client frame. Value hooks return null before attachment; useNodeKey has no currentNode on the server; event and observer callbacks do not run there.
 - useId derives deterministic markup ids from tree and hook position. useEvent returns a stable callable whose latest handler works on server and client.
 - Focus, active-element, abort-controller, animation-frame, history, and clipboard hooks are browser-only. They expose null or inert controller state during SSR and activate after the first client frame.
@@ -228,6 +230,11 @@ Signature: ValueNotifier<T> useState<T>(T initialData)
 Creates, subscribes to, and disposes an owned ValueNotifier. Assigning a different .value rebuilds the owner. initialData is used only when the hook state is first created and must be deterministic for SSR.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-state/
 
+### useGuardedState
+Signature: GuardedValueNotifier<T> useGuardedState<T>(T initialData)
+Creates, subscribes to, and disposes an owned GuardedValueNotifier. Assigning a different .value rebuilds the owner; assignments after the owner unmounts are dropped silently instead of failing the disposed-notifier assertion. isDisposed reports that state. Use it for state written after await, timers, or browser callbacks. initialData must be deterministic for SSR.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-guarded-state/
+
 ### useEffect
 Signature: void useEffect(Dispose? Function() effect, [List<Object?>? keys])
 Runs a synchronous browser-client effect that may return a synchronous cleanup. With omitted/null keys, cleanup and effect run on every client build. With stable keys, state is preserved. With changed keys, a replacement effect initializes and the replaced state is cleaned after the build. The final cleanup runs on disposal. It is skipped on the server. Never return a Future.
@@ -332,6 +339,11 @@ Signature: void useUpdateEffect(Dispose? Function() effect, [List<Object?>? keys
 Skips the first client build, then follows useEffect replacement and cleanup semantics. null/omitted keys run on every later build; ordered keys run on later key changes. Server effects are skipped. Empty keys mean it never runs because no update changes them.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-update-effect/
 
+### usePostFrameUpdateEffect
+Signature: void usePostFrameUpdateEffect(Dispose? Function() effect, [List<Object?>? keys])
+Runs the effect after a completed browser frame while skipping the mount frame. null/omitted keys run after every later frame; ordered keys run after the frame in which they changed. Cleanup runs before a replacement and on disposal. Server effects are skipped. Use it instead of storing previous props in refs.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-post-frame-update-effect/
+
 ## API reference: async
 
 ### useFuture
@@ -435,6 +447,21 @@ Signature: void useOnPreferredMotionChange(PreferredMotionCallback callback)
 After initial browser synchronization, invokes the latest callback for distinct reduced-motion preference transitions. It does not fire for the initial baseline and attaches nothing on the server. Use usePreferredMotion when the value must rebuild rendered output.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-preferred-motion-change/
 
+### useLocation
+Signature: Uri? useLocation()
+Returns null during SSR and the first hydration build, then the current document Uri after the first client frame. Rebuilds on popstate, hashchange, pageshow, and same-document navigation performed through useHistoryState; equal locations do not rebuild. Owns and removes its window listeners.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-location/
+
+### useBrowserRoute
+Signature: T useBrowserRoute<T>(T serverRoute, T Function(Uri location) resolve, {void Function(Uri location)? onLocationChange})
+Returns serverRoute during SSR and the first hydration build, then resolve(location) after the first client frame and after every location change. onLocationChange runs for each later change outside of a build, never for the initial synchronization. Keep resolve pure and cheap.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-browser-route/
+
+### useOnWindowFocus
+Signature: void useOnWindowFocus(void Function() callback, {bool includeVisibilityChange = true})
+Invokes the latest callback when the window fires focus and, by default, when the document becomes visible again. Listeners attach after the first client frame and are removed on disposal; nothing attaches on the server. One user action can fire both events, so keep the callback idempotent.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-on-window-focus/
+
 ## API reference: browser DOM
 
 These APIs require import 'package:jaspr_hooks/web.dart'. Import package:universal_web/web.dart as web when naming native browser types. The web entry point also exports the universal hook API.
@@ -523,7 +550,7 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-mutation-observer/
 - Include correct keys and respect ownership/cleanup behavior.
 - Preserve deterministic server HTML and first hydration output.
 - Pass null Future/Stream sources on the server; do not skip their hook calls.
-- Supply getServerSnapshot for SSR external stores and preserve null/unknown DOM fallbacks through hydration.
+- Supply getServerSnapshot for SSR external stores whose getSnapshot is not server-safe, and preserve null/unknown DOM fallbacks through hydration.
 - Run dart format, dart analyze, and the project's relevant VM/browser/server tests.
 - Summarize changed dependencies, converted components, SSR decisions, and verification results.
 

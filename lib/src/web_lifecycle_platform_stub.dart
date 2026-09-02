@@ -35,3 +35,13 @@ LifecycleObservation<MediaQueryMatch> observeMediaQuery(
   String query,
   void Function(MediaQueryMatch value) callback,
 ) => const LifecycleObservation(MediaQueryMatch.unknown, null);
+
+Uri? readLocation() => null;
+
+LifecycleObservation<Uri?> observeLocation(void Function(Uri? value) callback) =>
+    const LifecycleObservation(null, null);
+
+LifecycleSubscription? watchWindowFocus(
+  void Function() callback, {
+  required bool includeVisibilityChange,
+}) => null;

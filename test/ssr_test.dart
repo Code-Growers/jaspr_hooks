@@ -48,6 +48,32 @@ void main() {
     );
   });
 
+  group('browser lifecycle SSR contract', () {
+    testComponents(
+      'location hooks return server fallbacks and window focus attaches nothing',
+      (tester) async {
+        Uri? location;
+        String? route;
+
+        tester.pumpComponent(
+          HookBuilder(
+            builder: (context) {
+              location = useLocation();
+              route = useBrowserRoute<String>('server', (_) => 'client');
+              useOnWindowFocus(() => fail('window focus must not attach on the server'));
+              return const Component.empty();
+            },
+          ),
+        );
+
+        await tester.pump();
+        expect(location, isNull);
+        expect(route, 'server');
+      },
+      isClient: false,
+    );
+  });
+
   group('async SSR contract', () {
     test('rejects non-null Future, Stream, and stream listener sources', () {
       final futureBinding = _captureServerError(

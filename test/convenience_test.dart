@@ -387,6 +387,39 @@ void main() {
       expect(events, <String>['effect:1', 'effect:2', 'cleanup:1']);
     });
 
+    testComponents('usePostFrameUpdateEffect skips the mount frame and honors keys', (tester) async {
+      final harness = TestHarnessController();
+      final events = <String>[];
+      var key = 0;
+
+      Component child() => HookBuilder(
+        builder: (context) {
+          final currentKey = key;
+          usePostFrameUpdateEffect(() {
+            events.add('effect:$currentKey');
+            return () => events.add('cleanup:$currentKey');
+          }, <Object?>[key]);
+          events.add('build:$currentKey');
+          return const Component.empty();
+        },
+      );
+
+      tester.pumpComponent(TestHarness(controller: harness, builder: child));
+      await tester.pump();
+      harness.rebuild();
+      await tester.pump();
+      expect(events, <String>['build:0', 'build:0']);
+
+      key = 1;
+      harness.rebuild();
+      await tester.pump();
+      expect(events, <String>['build:0', 'build:0', 'build:1', 'effect:1']);
+
+      harness.unmountChild();
+      await tester.pump();
+      expect(events.last, 'cleanup:1');
+    });
+
     test('all lifecycle aliases stay inactive during server rendering', () {
       final binding = CapturingTestComponentsBinding(isClient: false);
       addTearDown(binding.detachRootComponent);
@@ -397,6 +430,10 @@ void main() {
           builder: (context) {
             useMount(() => events.add('mount'));
             useUnmount(() => events.add('unmount'));
+            usePostFrameUpdateEffect(() {
+              events.add('post-frame-update');
+              return null;
+            });
             useEffectOnce(() {
               events.add('once');
               return () => events.add('cleanup:once');

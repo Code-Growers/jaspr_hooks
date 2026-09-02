@@ -35,7 +35,7 @@ Use Jaspr preloading, synchronized state, serialized `@client` properties, or `j
 
 ## External stores
 
-`useExternalStore` requires a deterministic `getServerSnapshot` during SSR. Supply it in the browser as well to preserve that exact value through the first hydration build. The hook attaches the live subscription and switches to `getSnapshot` after the first frame.
+`useExternalStore` reads `getServerSnapshot` during SSR when you supply it and falls back to `getSnapshot` otherwise, without subscribing. Supply `getServerSnapshot` in the browser as well to preserve that exact value through the first hydration build. The hook attaches the live subscription and switches to `getSnapshot` after the first frame.
 
 ```dart
 final session = useExternalStore<SessionSnapshot>(

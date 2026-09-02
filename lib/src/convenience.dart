@@ -707,6 +707,23 @@ void useUpdateEffect(Dispose? Function() effect, [List<Object?>? keys]) {
   }, keys);
 }
 
+/// Runs [effect] after a completed browser frame for updates, skipping the
+/// frame that mounted the hook.
+///
+/// With omitted [keys], it runs after every later client frame. With keys, it
+/// runs after the frame in which their ordered contents changed. Effects and
+/// cleanups are skipped during server and static rendering.
+void usePostFrameUpdateEffect(Dispose? Function() effect, [List<Object?>? keys]) {
+  final isInitialRun = useRef(true);
+  usePostFrameEffect(() {
+    if (isInitialRun.value) {
+      isInitialRun.value = false;
+      return null;
+    }
+    return effect();
+  }, keys);
+}
+
 bool _orderedEquals<T>(List<T> left, List<T> right) {
   if (left.length != right.length) {
     return false;

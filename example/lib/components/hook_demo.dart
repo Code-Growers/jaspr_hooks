@@ -59,6 +59,9 @@ class HookDemo extends StatelessComponent {
     'useOnMediaQueryChange',
     'useOnPreferredColorSchemeChange',
     'useOnPreferredMotionChange',
+    'useLocation',
+    'useBrowserRoute',
+    'useOnWindowFocus',
     'useOnStreamChange',
     'useOptimistic',
     'usePostFrameEffect',
@@ -70,12 +73,14 @@ class HookDemo extends StatelessComponent {
     'useRef',
     'useSet',
     'useState',
+    'useGuardedState',
     'useStream',
     'useStreamController',
     'useTimeout',
     'useToggle',
     'useUnmount',
     'useUpdateEffect',
+    'usePostFrameUpdateEffect',
     'useValueChanged',
     'useValueListenable',
     'useValueNotifier',
@@ -141,6 +146,9 @@ class HookDemo extends StatelessComponent {
       'useOnMediaQueryChange' => _useOnMediaQueryChangeDemo(),
       'useOnPreferredColorSchemeChange' => _useOnPreferredColorSchemeChangeDemo(),
       'useOnPreferredMotionChange' => _useOnPreferredMotionChangeDemo(),
+      'useLocation' => _useLocationDemo(),
+      'useBrowserRoute' => _useBrowserRouteDemo(),
+      'useOnWindowFocus' => _useOnWindowFocusDemo(),
       'useOnStreamChange' => _useOnStreamChangeDemo(context),
       'useOptimistic' => _useOptimisticDemo(),
       'usePostFrameEffect' => _usePostFrameEffectDemo(),
@@ -152,18 +160,75 @@ class HookDemo extends StatelessComponent {
       'useRef' => _useRefDemo(),
       'useSet' => _useSetDemo(),
       'useState' => _useStateDemo(),
+      'useGuardedState' => _useGuardedStateDemo(),
       'useStream' => _useStreamDemo(context),
       'useStreamController' => _useStreamControllerDemo(context),
       'useTimeout' => _useTimeoutDemo(),
       'useToggle' => _useToggleDemo(),
       'useUnmount' => _useUnmountDemo(),
       'useUpdateEffect' => _useUpdateEffectDemo(),
+      'usePostFrameUpdateEffect' => _usePostFrameUpdateEffectDemo(),
       'useValueChanged' => _useValueChangedDemo(),
       'useValueListenable' => _useValueListenableDemo(),
       'useValueNotifier' => _useValueNotifierDemo(),
       'useWindowSize' => _useWindowSizeDemo(),
       _ => _output('Unknown demo: $name'),
     };
+  }
+
+  Component _useGuardedStateDemo() {
+    final GuardedValueNotifier<String> status = useGuardedState<String>('idle');
+    return _row(<Component>[
+      _action('Finish after one second', () {
+        status.value = 'working';
+        Future<void>.delayed(const Duration(seconds: 1), () => status.value = 'done');
+      }),
+      _output('Status: ${status.value} • late writes are dropped once unmounted'),
+    ]);
+  }
+
+  Component _usePostFrameUpdateEffectDemo() {
+    final ValueNotifier<int> version = useState<int>(0);
+    final ValueNotifier<String> log = useState<String>('the mount frame ran no effect');
+    usePostFrameUpdateEffect(() {
+      log.value = 'ran after the frame for version ${version.value}';
+      return null;
+    }, <Object?>[version.value]);
+    return _row(<Component>[
+      _action('Bump version', () => version.value++),
+      _output(log.value),
+    ]);
+  }
+
+  Component _useLocationDemo() {
+    final Uri? location = useLocation();
+    return _output('Location: ${location?.toString() ?? 'waiting for the first frame'}');
+  }
+
+  Component _useBrowserRouteDemo() {
+    final hooks_web.HistoryController? history = hooks_web.useHistoryState();
+    final ValueNotifier<int> changes = useState<int>(0);
+    final ValueNotifier<int> step = useState<int>(0);
+    final String route = useBrowserRoute<String>(
+      'server route',
+      (Uri location) => location.queryParameters['demoRoute'] ?? 'no demoRoute query',
+      onLocationChange: (_) => changes.value++,
+    );
+    return _row(<Component>[
+      _action('Push ?demoRoute=step', () {
+        step.value++;
+        history?.push(
+          Uri(path: web.window.location.pathname, queryParameters: <String, String>{'demoRoute': 'step-${step.value}'}),
+        );
+      }),
+      _output('Route: $route • changes ${changes.value}'),
+    ]);
+  }
+
+  Component _useOnWindowFocusDemo() {
+    final ValueNotifier<int> count = useState<int>(0);
+    useOnWindowFocus(() => count.value++);
+    return _output('Window regained focus ${count.value} times • switch away and back');
   }
 
   Component _useDemo() {

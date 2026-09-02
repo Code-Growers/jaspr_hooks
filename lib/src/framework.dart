@@ -232,9 +232,8 @@ abstract class HookState<R, H extends Hook<R>> {
       throw StateError('setState() called after the hook was disposed.');
     }
     callback();
-    element
-      .._isOptionalRebuild = false
-      ..markNeedsBuild();
+    element._isOptionalRebuild = false;
+    element._requestRebuild();
   }
 
   /// Reports a lifecycle callback failure through the owning Jaspr binding.
@@ -309,6 +308,7 @@ BuildContext useContext() {
 
 mixin _HookElement on BuildableElement {
   static _HookElement? _currentHookElement;
+  static int _buildDepth = 0;
 
   final LinkedList<_Entry<HookState<Object?, Hook<Object?>>>> _hooks = LinkedList();
   final LinkedList<_Entry<bool Function()>> _shouldRebuildQueue = LinkedList();
@@ -318,6 +318,8 @@ mixin _HookElement on BuildableElement {
   bool? _isOptionalRebuild = false;
   Component? _buildCache;
   bool _isInitializingHook = false;
+  bool _rebuildDeferred = false;
+  bool _isUnmounted = false;
   int _currentHookIndex = 0;
 
   @override
@@ -350,15 +352,38 @@ mixin _HookElement on BuildableElement {
     _currentHookIndex = 0;
     final previousElement = _currentHookElement;
     _currentHookElement = this;
+    _buildDepth++;
     try {
       _buildCache = super.build();
       return _buildCache!;
     } finally {
+      _buildDepth--;
       _isOptionalRebuild = null;
       _removeRemainingHooks();
       _currentHookElement = previousElement;
       _disposePendingHooks();
     }
+  }
+
+  /// Jaspr clears an element's dirty flag only after its build returns, so a
+  /// rebuild requested while any hook component is building would be dropped
+  /// (own element) or rejected (another element). Those requests are replayed
+  /// after the frame instead.
+  void _requestRebuild() {
+    if (_buildDepth == 0 || !binding.isClient) {
+      markNeedsBuild();
+      return;
+    }
+    if (_rebuildDeferred) {
+      return;
+    }
+    _rebuildDeferred = true;
+    binding.addPostFrameCallback(() {
+      _rebuildDeferred = false;
+      if (!_isUnmounted) {
+        markNeedsBuild();
+      }
+    });
   }
 
   R _use<R>(Hook<R> hook) {
@@ -494,6 +519,7 @@ mixin _HookElement on BuildableElement {
 
   @override
   void unmount() {
+    _isUnmounted = true;
     final errorContext = _CleanupErrorElement(component);
     Object? unmountError;
     StackTrace? unmountStackTrace;

@@ -75,12 +75,13 @@ typedef ExternalStoreSnapshotEquals<T> = bool Function(T previous, T current);
 
 /// Reads and subscribes to an external immutable snapshot.
 ///
-/// Server rendering requires [getServerSnapshot]. On a browser client,
-/// providing [getServerSnapshot] preserves that value through the first build,
-/// then subscribes and reads [getSnapshot] after the first frame. Without a
-/// server snapshot, the client subscribes immediately. If replacing a
-/// subscription throws while unsubscribing, the error is reported and the new
-/// subscription is still established.
+/// Server rendering reads [getServerSnapshot] when supplied and otherwise
+/// [getSnapshot], without subscribing. On a browser client, providing
+/// [getServerSnapshot] preserves that value through the first build, then
+/// subscribes and reads [getSnapshot] after the first frame. Without a server
+/// snapshot, the client subscribes immediately. If replacing a subscription
+/// throws while unsubscribing, the error is reported and the new subscription
+/// is still established.
 T useExternalStore<T>(
   ExternalStoreSubscribe subscribe,
   T Function() getSnapshot, {
@@ -170,13 +171,7 @@ class _ExternalStoreHookState<T> extends HookState<T, _ExternalStoreHook<T>> {
 
   void _readServerSnapshot() {
     final getServerSnapshot = hook.getServerSnapshot;
-    if (getServerSnapshot == null) {
-      throw StateError(
-        'useExternalStore() requires getServerSnapshot while rendering on the server. '
-        'Provide a deterministic snapshot that also represents the first hydration build.',
-      );
-    }
-    _setSnapshot(getServerSnapshot());
+    _setSnapshot(getServerSnapshot == null ? hook.getSnapshot() : getServerSnapshot());
   }
 
   void _activateClient() {

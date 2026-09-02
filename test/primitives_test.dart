@@ -44,6 +44,61 @@ void main() {
       expect(() => state!.value = 3, throwsA(anything));
     });
 
+    testComponents('useGuardedState rebuilds while mounted and drops later writes', (
+      tester,
+    ) async {
+      final harness = TestHarnessController();
+      GuardedValueNotifier<int>? state;
+      var builds = 0;
+
+      Component child() => HookBuilder(
+        builder: (context) {
+          builds++;
+          state = useGuardedState(1);
+          return Component.text('guarded:${state!.value}');
+        },
+      );
+
+      tester.pumpComponent(TestHarness(controller: harness, builder: child));
+      state!.value = 2;
+      await tester.pump();
+      expect(builds, 2);
+      expect(find.text('guarded:2'), findsOneComponent);
+      expect(state!.isDisposed, isFalse);
+
+      harness.unmountChild();
+      await tester.pump();
+      expect(state!.isDisposed, isTrue);
+      expect(() => state!.value = 3, returnsNormally);
+      expect(state!.value, 2, reason: 'writes after disposal are ignored');
+    });
+
+    testComponents('state assigned during a build is rendered after the frame', (
+      tester,
+    ) async {
+      var builds = 0;
+
+      tester.pumpComponent(
+        HookBuilder(
+          builder: (context) {
+            builds++;
+            final loading = useState(false);
+            final guarded = useGuardedState('idle');
+            useEffect(() {
+              loading.value = true;
+              guarded.value = 'started';
+              return null;
+            }, const <Object?>[]);
+            return Component.text('loading:${loading.value} ${guarded.value}');
+          },
+        ),
+      );
+
+      await tester.pump();
+      expect(builds, 2);
+      expect(find.text('loading:true started'), findsOneComponent);
+    });
+
     testComponents('useRef preserves a mutable cell without rebuilding', (
       tester,
     ) async {

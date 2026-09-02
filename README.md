@@ -9,14 +9,14 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> Current stable release: `0.1.2`.
+> Current stable release: `0.2.0`.
 
 ## Install
 
 ```yaml
 dependencies:
   jaspr: ^0.23.3
-  jaspr_hooks: ^0.1.2
+  jaspr_hooks: ^0.2.0
 ```
 
 The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
@@ -61,13 +61,13 @@ For lower-level lifecycle objects, extend `Hook<R>` and
 | --- | --- |
 | Framework | `use`, `useContext`, `useId`, `useEvent` |
 | Foundation | `useLatest`, `useDisposable`, `useExternalStore`, `useInherited`, `useImperativeHandle`, `useTimeout`, `useInterval` |
-| Primitives | `useState`, `useEffect`, `usePostFrameEffect`, `useMemoized`, `useCallback`, `useRef`, `useValueChanged` |
+| Primitives | `useState`, `useGuardedState`, `useEffect`, `usePostFrameEffect`, `useMemoized`, `useCallback`, `useRef`, `useValueChanged` |
 | Lifecycle/state | `usePrevious`, `useReducer`, `useIsMounted`, `useDebounced` |
-| Convenience state | `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, `useQueue`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect` |
+| Convenience state | `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, `useQueue`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect`, `usePostFrameUpdateEffect` |
 | Async | `useFuture`, `useStream`, `useStreamController`, `useOnStreamChange` |
 | Actions | `useAsyncAction`, `useOptimistic` |
 | Listenables | `useListenable`, `useListenableSelector`, `useValueNotifier`, `useValueListenable`, `useOnListenableChange` |
-| Browser lifecycle | `useDocumentVisibility`, `useOnDocumentVisibilityChange`, `usePreferredColorScheme`, `useOnPreferredColorSchemeChange`, `useMediaQuery`, `useOnMediaQueryChange`, `usePreferredMotion`, `useOnPreferredMotionChange` |
+| Browser lifecycle | `useDocumentVisibility`, `useOnDocumentVisibilityChange`, `usePreferredColorScheme`, `useOnPreferredColorSchemeChange`, `useMediaQuery`, `useOnMediaQueryChange`, `usePreferredMotion`, `useOnPreferredMotionChange`, `useLocation`, `useBrowserRoute`, `useOnWindowFocus` |
 | Browser DOM | `useNodeKey`, `useFocus`, `useFocusWithin`, `useActiveElement`, `useAbortController`, `useAnimationFrame`, `useHistoryState`, `useClipboard`, `useElementSize`, `useWindowSize`, `useIntersection`, `useEventListener`, `useOnClickOutside`, `useHover`, `useMutationObserver` |
 
 The universal entry point contains every hook except direct DOM integrations:
@@ -95,14 +95,15 @@ tree in the browser. Hook state is therefore not serialized automatically.
 
 | API | Server/static rendering | Browser |
 | --- | --- | --- |
-| `useEffect` | Effect is skipped | Runs synchronously during build |
-| `usePostFrameEffect` | Effect is skipped | Runs after the frame |
+| `useEffect` | Effect is skipped | Runs synchronously during build; state it assigns renders after the frame |
+| `usePostFrameEffect`, `usePostFrameUpdateEffect` | Effect is skipped | Runs after the frame |
 | `useFuture`, `useStream`, `useOnStreamChange` | Source must be `null` | Subscribes normally |
 | Listenable hooks | Read initial value, attach no listener | Attach listeners |
 | `useDebounced`, `useTimeout`, `useInterval` | Create no timer | Run timers normally |
-| `useExternalStore` | Requires `getServerSnapshot` | Hydrates from the server snapshot, then subscribes |
+| `useExternalStore` | Reads `getServerSnapshot`, or `getSnapshot` without one | Hydrates from the server snapshot, then subscribes |
 | Async and optimistic actions | Read deterministic initial state; do not mutate | Dispatch and mutate from event handlers |
 | Browser lifecycle value hooks | Return `unknown` | Synchronize after the first frame |
+| `useLocation`, `useBrowserRoute` | Return `null` or the server route | Synchronize after the first frame |
 | Browser DOM value hooks | Return inert state, `null`, or an unattached key | Attach after the first frame |
 
 Pass async sources conditionally:

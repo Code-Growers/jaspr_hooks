@@ -3,6 +3,7 @@ import 'dart:js_interop_unsafe';
 
 import 'package:universal_web/web.dart' as web;
 
+import 'location_change_event.dart';
 import 'web_lifecycle_types.dart';
 
 abstract interface class LifecycleSubscription {
@@ -44,6 +45,20 @@ final class _LegacyMediaLifecycleSubscription implements LifecycleSubscription {
     if (_cancelled) return;
     _cancelled = true;
     _media.removeListener(_listener);
+  }
+}
+
+final class _CallbackLifecycleSubscription implements LifecycleSubscription {
+  _CallbackLifecycleSubscription(this._cancel);
+
+  final void Function() _cancel;
+  bool _cancelled = false;
+
+  @override
+  void cancel() {
+    if (_cancelled) return;
+    _cancelled = true;
+    _cancel();
   }
 }
 
@@ -199,4 +214,50 @@ MediaQueryMatch _readMediaQuery(web.MediaQueryList media) {
   final matches = _readBooleanProperty(media as JSObject, 'matches');
   if (matches == null) return MediaQueryMatch.unknown;
   return matches ? MediaQueryMatch.matches : MediaQueryMatch.doesNotMatch;
+}
+
+const List<String> _locationEventTypes = <String>['popstate', 'hashchange', 'pageshow', locationChangeEventType];
+
+Uri? readLocation() => Uri.tryParse(web.window.location.href);
+
+LifecycleObservation<Uri?> observeLocation(void Function(Uri? value) callback) {
+  final listener = ((web.Event _) => callback(readLocation())).toJS;
+  for (final eventType in _locationEventTypes) {
+    web.window.addEventListener(eventType, listener);
+  }
+  return LifecycleObservation(
+    readLocation(),
+    _CallbackLifecycleSubscription(() {
+      for (final eventType in _locationEventTypes) {
+        web.window.removeEventListener(eventType, listener);
+      }
+    }),
+  );
+}
+
+LifecycleSubscription watchWindowFocus(
+  void Function() callback, {
+  required bool includeVisibilityChange,
+}) {
+  final focusListener = ((web.Event _) => callback()).toJS;
+  web.window.addEventListener('focus', focusListener);
+
+  final property = includeVisibilityChange ? _visibilityProperty : null;
+  final visibilityEventType = property == null ? null : _visibilityEvent(property);
+  web.EventListener? visibilityListener;
+  if (visibilityEventType != null) {
+    visibilityListener = ((web.Event _) {
+      if (_readDocumentVisibility(property!) == DocumentVisibility.visible) {
+        callback();
+      }
+    }).toJS;
+    web.document.addEventListener(visibilityEventType, visibilityListener);
+  }
+
+  return _CallbackLifecycleSubscription(() {
+    web.window.removeEventListener('focus', focusListener);
+    if (visibilityListener != null) {
+      web.document.removeEventListener(visibilityEventType!, visibilityListener);
+    }
+  });
 }

@@ -257,3 +257,64 @@ class _StateHookState<T> extends HookState<ValueNotifier<T>, _StateHook<T>> {
     _notifier.dispose();
   }
 }
+
+/// A [ValueNotifier] that ignores assignments after it has been disposed.
+class GuardedValueNotifier<T> extends ValueNotifier<T> {
+  /// Creates a guarded notifier holding [value].
+  GuardedValueNotifier(super.value);
+
+  bool _isDisposed = false;
+
+  /// Whether [dispose] has run; later assignments are dropped.
+  bool get isDisposed => _isDisposed;
+
+  @override
+  set value(T newValue) {
+    if (_isDisposed) {
+      return;
+    }
+    super.value = newValue;
+  }
+
+  @override
+  void dispose() {
+    if (_isDisposed) {
+      return;
+    }
+    _isDisposed = true;
+    super.dispose();
+  }
+}
+
+/// Creates a [GuardedValueNotifier] that rebuilds its owning component when
+/// changed and silently drops assignments made after the component unmounts.
+///
+/// Use it for state written after an `await`, a timer, or a browser callback,
+/// where the owning component may already be gone. Unlike [useState], late
+/// writes neither throw nor need an `IsMounted` check.
+GuardedValueNotifier<T> useGuardedState<T>(T initialData) => use(_GuardedStateHook<T>(initialData));
+
+class _GuardedStateHook<T> extends Hook<GuardedValueNotifier<T>> {
+  const _GuardedStateHook(this.initialData);
+
+  final T initialData;
+
+  @override
+  _GuardedStateHookState<T> createState() => _GuardedStateHookState<T>();
+}
+
+class _GuardedStateHookState<T> extends HookState<GuardedValueNotifier<T>, _GuardedStateHook<T>> {
+  late final GuardedValueNotifier<T> _notifier = GuardedValueNotifier<T>(hook.initialData)..addListener(_listener);
+
+  void _listener() {
+    setState(() {});
+  }
+
+  @override
+  GuardedValueNotifier<T> build(BuildContext context) => _notifier;
+
+  @override
+  void dispose() {
+    _notifier.dispose();
+  }
+}

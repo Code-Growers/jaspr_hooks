@@ -404,3 +404,159 @@ PreferredMotion _preferredMotion(MediaQueryMatch match) {
     MediaQueryMatch.doesNotMatch => PreferredMotion.noPreference,
   };
 }
+
+/// Returns the current document location.
+///
+/// This returns `null` during SSR and the first hydration build, then
+/// synchronizes after the first client frame. It rebuilds on `popstate`,
+/// `hashchange`, `pageshow`, and same-document navigation performed through
+/// a `HistoryController`.
+Uri? useLocation() => use(const _LocationHook(null));
+
+/// Derives a route value from the browser location.
+///
+/// This returns [serverRoute] during SSR and the first hydration build. After
+/// the first client frame it returns `resolve(location)` and rebuilds whenever
+/// the location changes. [onLocationChange] is invoked for every location
+/// change after that initial synchronization, outside of a build.
+T useBrowserRoute<T>(
+  T serverRoute,
+  T Function(Uri location) resolve, {
+  void Function(Uri location)? onLocationChange,
+}) {
+  final location = use(_LocationHook(onLocationChange));
+  return location == null ? serverRoute : resolve(location);
+}
+
+class _LocationHook extends Hook<Uri?> {
+  const _LocationHook(this.onChange);
+
+  final void Function(Uri location)? onChange;
+
+  @override
+  _LocationHookState createState() => _LocationHookState();
+}
+
+class _LocationHookState extends HookState<Uri?, _LocationHook> {
+  Uri? _value;
+  platform.LifecycleSubscription? _subscription;
+  int _generation = 0;
+
+  @override
+  void initHook() {
+    final generation = ++_generation;
+    if (!context.binding.isClient) {
+      return;
+    }
+    context.binding.addPostFrameCallback(() {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      final observation = platform.observeLocation((next) {
+        if (!mounted || generation != _generation || next == _value) {
+          return;
+        }
+        final previous = _value;
+        setState(() => _value = next);
+        if (previous != null && next != null) {
+          try {
+            hook.onChange?.call(next);
+          } catch (error, stackTrace) {
+            reportHookError(error, stackTrace);
+          }
+        }
+      });
+      _subscription = observation.subscription;
+      final current = observation.value;
+      if (current != _value) {
+        setState(() => _value = current);
+      }
+    });
+  }
+
+  @override
+  Uri? build(context) => _value;
+
+  @override
+  void dispose() {
+    _generation++;
+    _subscription?.cancel();
+    _subscription = null;
+  }
+}
+
+/// Calls [callback] when the window regains focus.
+///
+/// With [includeVisibilityChange], it also fires when the document becomes
+/// visible again, which covers returning to a background tab where the
+/// browser fires no `focus` event. Both underlying events can fire for one
+/// user action. The listener attaches after the first client frame and never
+/// runs on the server.
+void useOnWindowFocus(void Function() callback, {bool includeVisibilityChange = true}) {
+  use(_OnWindowFocusHook(callback, includeVisibilityChange));
+}
+
+class _OnWindowFocusHook extends Hook<void> {
+  const _OnWindowFocusHook(this.callback, this.includeVisibilityChange);
+
+  final void Function() callback;
+  final bool includeVisibilityChange;
+
+  @override
+  _OnWindowFocusHookState createState() => _OnWindowFocusHookState();
+}
+
+class _OnWindowFocusHookState extends HookState<void, _OnWindowFocusHook> {
+  platform.LifecycleSubscription? _subscription;
+  int _generation = 0;
+
+  @override
+  void initHook() {
+    _scheduleSubscription();
+  }
+
+  @override
+  void didUpdateHook(_OnWindowFocusHook oldHook) {
+    if (hook.includeVisibilityChange != oldHook.includeVisibilityChange) {
+      _detach();
+      _scheduleSubscription();
+    }
+  }
+
+  void _scheduleSubscription() {
+    final generation = ++_generation;
+    if (!context.binding.isClient) {
+      return;
+    }
+    context.binding.addPostFrameCallback(() {
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      _subscription = platform.watchWindowFocus(
+        () {
+          if (!mounted || generation != _generation) {
+            return;
+          }
+          try {
+            hook.callback();
+          } catch (error, stackTrace) {
+            reportHookError(error, stackTrace);
+          }
+        },
+        includeVisibilityChange: hook.includeVisibilityChange,
+      );
+    });
+  }
+
+  void _detach() {
+    _generation++;
+    _subscription?.cancel();
+    _subscription = null;
+  }
+
+  @override
+  void build(context) {}
+
+  @override
+  void dispose() => _detach();
+}

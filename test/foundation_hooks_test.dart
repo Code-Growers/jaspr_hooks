@@ -562,22 +562,23 @@ void main() {
       expect(binding.errors.single.error, isA<StateError>());
     });
 
-    test('requires a deterministic snapshot on the server', () {
+    test('falls back to getSnapshot on the server without subscribing', () {
       final binding = CapturingTestComponentsBinding(isClient: false);
       addTearDown(binding.detachRootComponent);
-      final store = _ExternalIntStore(1);
+      final store = _ExternalIntStore(7);
+      int? snapshot;
 
       binding.attachRootComponent(
         HookBuilder(
           builder: (context) {
-            useExternalStore(store.subscribe, store.getSnapshot);
+            snapshot = useExternalStore(store.subscribe, store.getSnapshot);
             return const Component.empty();
           },
         ),
       );
 
-      expect(binding.errors.single.error, isA<StateError>());
-      expect(binding.errors.single.error.toString(), contains('getServerSnapshot'));
+      expect(binding.errors, isEmpty);
+      expect(snapshot, 7);
       expect(store.activeListeners, 0);
     });
 

@@ -122,6 +122,12 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     summary: 'Creates an owned ValueNotifier that rebuilds the component when changed.',
   ),
   HookDoc(
+    name: 'useGuardedState',
+    slug: 'use-guarded-state',
+    category: HookCategory.primitives,
+    summary: 'Owns a ValueNotifier that ignores writes after its component unmounts.',
+  ),
+  HookDoc(
     name: 'useEffect',
     slug: 'use-effect',
     category: HookCategory.primitives,
@@ -242,6 +248,12 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     summary: 'Runs an effect for client updates while skipping the initial build.',
   ),
   HookDoc(
+    name: 'usePostFrameUpdateEffect',
+    slug: 'use-post-frame-update-effect',
+    category: HookCategory.convenience,
+    summary: 'Runs a post-frame effect for updates while skipping the mount frame.',
+  ),
+  HookDoc(
     name: 'useFuture',
     slug: 'use-future',
     category: HookCategory.async,
@@ -354,6 +366,24 @@ const List<HookDoc> hookCatalog = <HookDoc>[
     slug: 'use-on-preferred-motion-change',
     category: HookCategory.browser,
     summary: 'Runs a callback when the preferred-motion setting changes.',
+  ),
+  HookDoc(
+    name: 'useLocation',
+    slug: 'use-location',
+    category: HookCategory.browser,
+    summary: 'Returns the document location and rebuilds when it changes.',
+  ),
+  HookDoc(
+    name: 'useBrowserRoute',
+    slug: 'use-browser-route',
+    category: HookCategory.browser,
+    summary: 'Derives a route value from the browser location with a server fallback.',
+  ),
+  HookDoc(
+    name: 'useOnWindowFocus',
+    slug: 'use-on-window-focus',
+    category: HookCategory.browser,
+    summary: 'Invokes a callback when the window regains focus or becomes visible.',
   ),
   HookDoc(
     name: 'useNodeKey',

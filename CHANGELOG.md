@@ -1,3 +1,19 @@
+# 0.2.0
+
+- Added `useGuardedState`, whose `GuardedValueNotifier` drops assignments made
+  after the owning component unmounts instead of failing Jaspr's
+  disposed-notifier assertion.
+- Added `usePostFrameUpdateEffect`, a post-frame effect that skips the mount
+  frame.
+- Added `useLocation`, `useBrowserRoute`, and `useOnWindowFocus` to the browser
+  lifecycle hooks. `HistoryController.push` and `replace` now announce
+  same-document navigation to `useLocation`.
+- Hook state assigned while a hook component is building, such as inside
+  `useEffect`, now rebuilds after the frame instead of being dropped by Jaspr's
+  dirty flag or rejected as a build-time `setState`.
+- `useExternalStore` no longer requires `getServerSnapshot` on the server; it
+  falls back to `getSnapshot` without subscribing.
+
 # 0.1.2
 
 - Fixed signed-zero change detection in `useOptimistic` and `useExternalStore`

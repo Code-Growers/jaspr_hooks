@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 
 import 'package:universal_web/web.dart' as web;
 
+import 'location_change_event.dart';
 import 'web_hooks_types.dart';
 
 abstract interface class BrowserSubscription {
@@ -91,10 +92,16 @@ BrowserSubscription watchHistory(void Function(HistoryEntry value) callback) {
 
 void pushHistory(Uri uri, Object? state) {
   web.window.history.pushState(state.jsify(), '', uri.toString());
+  _dispatchLocationChange();
 }
 
 void replaceHistory(Uri uri, Object? state) {
   web.window.history.replaceState(state.jsify(), '', uri.toString());
+  _dispatchLocationChange();
+}
+
+void _dispatchLocationChange() {
+  web.window.dispatchEvent(web.Event(locationChangeEventType));
 }
 
 void historyBack() => web.window.history.back();
