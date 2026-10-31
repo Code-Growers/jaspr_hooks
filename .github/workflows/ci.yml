@@ -29,31 +29,32 @@ jobs:
           test/browser_lifecycle_test.dart
           test/media_query_hooks_browser_test.dart
           test/web_hooks_browser_test.dart
+          test/hot_reload_browser_test.dart
       - run: dart doc --validate-links
       - run: dart run tool/verify_package_layout.dart
 
   dart-lower-bound:
-    name: Dart 3.8 consumer lower bound
+    name: Dart 3.13 consumer lower bound
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 3.8.0
+          sdk: 3.13.0
       - name: Verify runtime dependency lower bounds without dev tools
         shell: bash
         run: |
           fixture="$RUNNER_TEMP/jaspr_hooks_consumer"
           mkdir -p "$fixture/lib"
           package_path="${GITHUB_WORKSPACE//\\//}"
-          printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.8.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n  universal_web: ^1.1.1+1\n' "$package_path" > "$fixture/pubspec.yaml"
+          printf 'name: lower_bound_consumer\nenvironment:\n  sdk: ">=3.13.0 <4.0.0"\ndependencies:\n  jaspr_hooks:\n    path: "%s"\n  universal_web: ^1.1.1+1\n' "$package_path" > "$fixture/pubspec.yaml"
           printf '%s\n' \
             "import 'package:jaspr_hooks/jaspr_hooks.dart';" \
             '' \
             'void main() {' \
             '  final idHook = useId;' \
             '  final eventHook = useEvent<int, int>;' \
-            '  print((HookComponent, idHook, eventHook));' \
+            '  print((HookComponent, HookIdScope, idHook, eventHook));' \
             '}' > "$fixture/lib/main.dart"
           printf '%s\n' \
             "import 'package:jaspr_hooks/web.dart';" \
@@ -98,7 +99,6 @@ jobs:
           cache: npm
           cache-dependency-path: e2e/package-lock.json
       - run: dart pub get
-      - run: dart pub global activate jaspr_cli 0.23.4
       - run: dart pub get
         working-directory: example
       - run: dart test
@@ -107,7 +107,7 @@ jobs:
         working-directory: example
         env:
           SITE_DOMAIN: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-        run: jaspr build --sitemap-domain "$SITE_DOMAIN"
+        run: dart run jaspr_cli:jaspr build --sitemap-domain "$SITE_DOMAIN"
       - run: npm ci
         working-directory: e2e
       - run: npm run typecheck

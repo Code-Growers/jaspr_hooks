@@ -46,6 +46,8 @@ class FormatterView extends HookComponent {
 
 The hook retains the value but assumes no disposal ownership. A key change drops the old reference and computes a replacement; unmount drops the final reference without cleanup.
 
+Development hot reload also recomputes the value on the next build, using the latest builder. Use `useRef` or a state hook for mutable state that must survive reload. See [Hot reload](guides/hot-reload).
+
 ## Server rendering
 
 The builder also runs during server rendering. Keep its result deterministic for the first client build and do not construct browser-only objects on the server.

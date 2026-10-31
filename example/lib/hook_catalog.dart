@@ -482,6 +482,8 @@ const List<({String title, String href})> guideCatalog = <({String title, String
   (title: 'AI agents', href: 'guides/ai-agents'),
   (title: 'Rules of hooks', href: 'guides/rules-of-hooks'),
   (title: 'SSR & hydration', href: 'guides/ssr-and-hydration'),
+  (title: 'Server components', href: 'guides/server-components'),
+  (title: 'Hot reload', href: 'guides/hot-reload'),
   (title: 'Writing custom hooks', href: 'guides/custom-hooks'),
   (title: 'Migrating from flutter_hooks', href: 'guides/migration'),
   (title: 'Attribution & licensing', href: 'guides/attribution'),

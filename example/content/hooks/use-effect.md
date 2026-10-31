@@ -47,6 +47,8 @@ class TitleSync extends HookComponent {
 
 The hook owns only the cleanup returned by the effect. With no keys it cleans and reruns on every client build; stable keys preserve the completed effect. Cleanup errors are reported without preventing other hook disposal.
 
+Development hot reload cleans up and reruns the effect with its latest configuration, even when keys match. Effects stay inactive on the server.
+
 ## Server rendering
 
 Effects are skipped during server rendering. Render an SSR-safe default, and use the effect only for browser resources or post-hydration synchronization.

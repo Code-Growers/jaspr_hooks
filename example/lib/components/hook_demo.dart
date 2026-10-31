@@ -94,7 +94,10 @@ class HookDemo extends StatelessComponent {
       attributes: <String, String>{'data-hook-demo': name},
       <Component>[
         div(classes: 'hook-demo-label', <Component>[Component.text('Interactive $name demo')]),
-        HookBuilder(builder: (BuildContext context) => _buildDemo(name, context)),
+        HookIdScope(
+          seed: 'hook-demo-$name',
+          child: HookBuilder(builder: (BuildContext context) => _buildDemo(name, context)),
+        ),
       ],
     );
   }

@@ -19,6 +19,9 @@ ObjectRef<T> useLatest<T>(T value) {
 ///
 /// Creation runs during both server and client builds and must be deterministic.
 /// Each resource retains the disposer supplied when that resource was created.
+/// Hot reload replaces the resource on the next build. Cleanup follows element
+/// unmounting, not HTTP response completion; manage server request resources
+/// explicitly with `try`/`finally` in the caller.
 T useDisposable<T>(
   T Function() create,
   void Function(T value) dispose, [
@@ -41,9 +44,14 @@ class _DisposableHookState<T> extends HookState<T, _DisposableHook<T>> {
   T? _value;
   void Function(T value)? _disposeResource;
   bool _initialized = false;
+  bool _needsRecreate = false;
 
   @override
   void initHook() {
+    _createResource();
+  }
+
+  void _createResource() {
     final value = hook.create();
     _value = value;
     _disposeResource = hook.disposeResource;
@@ -51,16 +59,35 @@ class _DisposableHookState<T> extends HookState<T, _DisposableHook<T>> {
   }
 
   @override
-  T build(BuildContext context) => _value as T;
+  void reassemble() {
+    _needsRecreate = true;
+  }
 
   @override
-  void dispose() {
+  T build(BuildContext context) {
+    if (_needsRecreate) {
+      try {
+        _disposeResourceValue();
+      } catch (error, stackTrace) {
+        reportHookError(error, stackTrace);
+      }
+      _createResource();
+      _needsRecreate = false;
+    }
+    return _value as T;
+  }
+
+  @override
+  void dispose() => _disposeResourceValue();
+
+  void _disposeResourceValue() {
     if (!_initialized) {
       return;
     }
     final value = _value as T;
     final disposeResource = _disposeResource!;
     _initialized = false;
+    _value = null;
     _disposeResource = null;
     disposeResource(value);
   }

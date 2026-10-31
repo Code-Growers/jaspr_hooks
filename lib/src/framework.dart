@@ -2,6 +2,7 @@
 // Copyright (c) 2018 Remi Rousselet. Licensed under the MIT License.
 
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:jaspr/jaspr.dart';
 
@@ -56,8 +57,45 @@ class _EventHookState<T, R> extends HookState<StableEventCallback<T, R>, _EventH
   StableEventCallback<T, R> build(BuildContext context) => this;
 }
 
-/// Returns an HTML id that is stable across rebuilds, server rendering, and
-/// hydration when the component tree and hook order match.
+/// Provides a stable namespace for descendant [useId] calls.
+///
+/// Place this inside each independently hydrated `@client` boundary, above the
+/// hook hosts that need IDs. Pass [seed] as a serialized constructor property;
+/// it must be non-empty, unique within the document, and identical on the server
+/// and client. Nested scopes use their own seed. Descendant structure and hook
+/// order must match during hydration.
+class HookIdScope extends InheritedComponent {
+  /// Creates an ID scope. The [seed] is encoded before it appears in HTML IDs.
+  const HookIdScope({required this.seed, required super.child, super.key});
+
+  /// A document-unique namespace shared by the server and client builds.
+  final String seed;
+
+  @override
+  InheritedElement createElement() => _HookIdScopeElement(this);
+
+  @override
+  bool updateShouldNotify(HookIdScope oldComponent) => seed != oldComponent.seed;
+}
+
+class _HookIdScopeElement extends InheritedElement {
+  _HookIdScopeElement(HookIdScope super.component);
+
+  final Map<String, int> _allocations = {};
+
+  String allocate(String id) {
+    final count = _allocations.update(id, (count) => count + 1, ifAbsent: () => 0);
+    // Keep IDs unique when a keyed element moves and a new element takes its
+    // original tree position. Existing hook states retain their allocated ID.
+    return count == 0 ? id : '$id-r$count';
+  }
+}
+
+/// Returns an HTML id that is stable across rebuilds and hot reload.
+///
+/// For island hydration, use a [HookIdScope] inside the client boundary. Without
+/// a scope, IDs use the complete element path and only match between server and
+/// client when those complete trees match. The generated format is opaque.
 String useId({String prefix = 'jh'}) {
   if (prefix.isEmpty) {
     throw ArgumentError.value(prefix, 'prefix', 'must not be empty');
@@ -66,14 +104,21 @@ String useId({String prefix = 'jh'}) {
   if (element == null) {
     throw StateError('useId() can only be called while a hook component is building.');
   }
-  return use(_IdHook(prefix, element._currentHookIndex));
+  final scope = element.dependOnInheritedComponentOfExactType<HookIdScope>();
+  if (scope != null && scope.seed.isEmpty) {
+    throw ArgumentError.value(scope.seed, 'seed', 'must not be empty');
+  }
+  final scopeElement = element.getElementForInheritedComponentOfExactType<HookIdScope>() as _HookIdScopeElement?;
+  return use(_IdHook(prefix, element._currentHookIndex, scope?.seed, scopeElement));
 }
 
 class _IdHook extends Hook<String> {
-  _IdHook(this.prefix, this.hookIndex) : super(keys: <Object?>[prefix]);
+  _IdHook(this.prefix, this.hookIndex, this.seed, this.scope) : super(keys: <Object?>[prefix, seed, scope]);
 
   final String prefix;
   final int hookIndex;
+  final String? seed;
+  final _HookIdScopeElement? scope;
 
   @override
   _IdHookState createState() => _IdHookState();
@@ -84,19 +129,32 @@ class _IdHookState extends HookState<String, _IdHook> {
 
   @override
   String build(BuildContext context) {
-    return _value ??= _elementPath(context as Element, hook.hookIndex, hook.prefix);
+    return _value ??= _allocate(context as Element);
+  }
+
+  String _allocate(Element element) {
+    final path = _elementPath(element, hook.hookIndex, hook.scope);
+    final scope = hook.scope;
+    if (scope == null) {
+      return '${hook.prefix}-$path';
+    }
+    final seed = base64Url.encode(utf8.encode(hook.seed!)).replaceAll('=', '');
+    return scope.allocate('${hook.prefix}-s${seed.length}-$seed-$path');
   }
 }
 
-String _elementPath(Element element, int hookIndex, String prefix) {
+String _elementPath(Element element, int hookIndex, Element? boundary) {
   final indices = <int>[];
   Element? current = element;
-  while (current?.parent != null) {
-    indices.add(current!.slot.index);
+  while (current?.parent != null && !identical(current, boundary)) {
+    // Transparent buildable elements inherit their parent's exact slot. A slot
+    // inherited from the scope still describes the scope's outer position.
+    final slot = current!.slot;
+    indices.add(boundary != null && identical(slot, boundary.slot) ? 0 : slot.index);
     current = current.parent;
   }
   final path = indices.reversed.join('-');
-  return path.isEmpty ? '$prefix-$hookIndex' : '$prefix-$path-$hookIndex';
+  return path.isEmpty ? '$hookIndex' : '$path-$hookIndex';
 }
 
 /// Immutable configuration for a reusable piece of lifecycle-aware state.
@@ -195,8 +253,18 @@ abstract class HookState<R, H extends Hook<R>> {
   R build(BuildContext context);
 
   /// Called after a preserved state receives a new hook configuration.
+  /// Hot reload also calls this when the configuration instance is identical.
   @protected
   void didUpdateHook(covariant H oldHook) {}
+
+  /// Called during development hot reload before the next build.
+  ///
+  /// State is preserved by default. Override this to invalidate cached work or
+  /// refresh resources after the updated hook configuration arrives. Effects
+  /// must continue respecting [AppBinding.isClient]. Failures are reported
+  /// without preventing other hooks from receiving this callback.
+  @protected
+  void reassemble() {}
 
   /// Called when the owning element is temporarily removed from the tree.
   void deactivate() {}
@@ -320,6 +388,7 @@ mixin _HookElement on BuildableElement {
   bool _isInitializingHook = false;
   bool _rebuildDeferred = false;
   bool _isUnmounted = false;
+  bool _didReassemble = false;
   int _currentHookIndex = 0;
 
   @override
@@ -332,6 +401,26 @@ mixin _HookElement on BuildableElement {
   void didChangeDependencies() {
     _isOptionalRebuild = false;
     super.didChangeDependencies();
+  }
+
+  @override
+  void reassemble() {
+    _didReassemble = true;
+    _isOptionalRebuild = false;
+    for (final entry in _hooks) {
+      try {
+        entry.value.reassemble();
+      } catch (error, stackTrace) {
+        binding.reportBuildError(this, error, stackTrace);
+      }
+    }
+    super.reassemble();
+  }
+
+  @override
+  void onReload() {
+    _isOptionalRebuild = false;
+    super.onReload();
   }
 
   @override
@@ -358,6 +447,7 @@ mixin _HookElement on BuildableElement {
       return _buildCache!;
     } finally {
       _buildDepth--;
+      _didReassemble = false;
       _isOptionalRebuild = null;
       _removeRemainingHooks();
       _currentHookElement = previousElement;
@@ -393,12 +483,16 @@ mixin _HookElement on BuildableElement {
     } else if (hook.runtimeType != _currentHookState!.value.hook.runtimeType) {
       final previousType = _currentHookState!.value.hook.runtimeType;
       _removeRemainingHooks();
-      throw StateError(
-        'Hook order changed: expected $previousType at this position, '
-        'but received ${hook.runtimeType}. Hooks must be called unconditionally '
-        'and in the same order on every build.',
-      );
-    } else if (!identical(hook, _currentHookState!.value.hook)) {
+      if (_didReassemble) {
+        _appendHook(hook);
+      } else {
+        throw StateError(
+          'Hook order changed: expected $previousType at this position, '
+          'but received ${hook.runtimeType}. Hooks must be called unconditionally '
+          'and in the same order on every build.',
+        );
+      }
+    } else if (_didReassemble || !identical(hook, _currentHookState!.value.hook)) {
       final previousHook = _currentHookState!.value.hook;
       if (Hook.shouldPreserveState(previousHook, hook)) {
         _currentHookState!.value

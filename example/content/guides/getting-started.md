@@ -7,9 +7,11 @@ description: Add jaspr_hooks and build your first native Jaspr hook component.
 
 Add the package to a Jaspr application:
 
+This preview requires Dart 3.13 or later and Jaspr `>=0.24.0-beta.0 <0.25.0`. For Jaspr 0.23 applications, keep using the 0.2 release line.
+
 ```yaml
 dependencies:
-  jaspr_hooks: ^0.2.0
+  jaspr_hooks: ^0.3.0-beta.0
 ```
 
 Import the public library and extend `HookComponent`:

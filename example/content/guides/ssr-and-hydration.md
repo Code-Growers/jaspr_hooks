@@ -5,6 +5,34 @@ description: Understand deterministic server output and client-only subscription
 
 Jaspr creates one component tree while pre-rendering and another while hydrating in the browser. Hook state is local to each tree and is not serialized automatically.
 
+## Supported server behavior
+
+| Hook category | Server and static builds | Browser |
+| --- | --- | --- |
+| State, refs, memoization, reducers | Initialize per rendered tree | Separate client state |
+| Effects and timers | Inactive | Run under their lifecycle rules |
+| External stores and listenables | Read a snapshot without a live subscription | Subscribe |
+| Future and stream hooks | Sources must be null | Subscribe normally |
+| Browser DOM hooks | Return documented fallbacks without attaching | Activate after attachment |
+
+Hooks run synchronously in `HookComponent.build`, a `StatefulHookComponent` state build, or `HookBuilder`. To await server data, return one of these hosts from `AsyncStatelessComponent` or use `PreloadStateMixin` before a synchronous build. Direct hooks in an async build are unsupported. See [Server components](guides/server-components) for a complete example.
+
+## Hydration boundaries and IDs
+
+Place a `HookIdScope` inside every independently hydrated `@client` boundary that needs generated IDs. Pass its document-unique seed as a serialized property, using the same value on the server and client. Keep the scope above the hook host; wrapping the result of a build cannot scope hook calls already made by that build.
+
+```dart
+return HookIdScope(
+  seed: idScope,
+  child: HookBuilder(builder: (_) {
+    final id = useId();
+    return input(id: id);
+  }),
+);
+```
+
+Without a scope, `useId` uses the complete element ancestry. It remains stable on rebuild but does not guarantee matching IDs when the browser hydrates only an island of the server tree. A server ancestor scope does not transfer automatically to a client island; nested client boundaries need their own scopes.
+
 ## Client-only effects
 
 `useEffect`, `usePostFrameEffect`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect`, `useTimeout`, `useInterval`, and `useDebounced` stay inactive during server/static rendering. Browser lifecycle hooks return an `unknown` value until their first client frame.
@@ -52,6 +80,8 @@ Snapshots should be immutable. Server and client code must agree on equality and
 `useAsyncAction` and `useOptimistic` expose their deterministic initial or authoritative state during SSR. `AsyncAction.dispatch` and optimistic mutation methods throw there. Dispatch, add, commit, rollback, and reset from browser event handlers rather than during build.
 
 Convenience controllers such as `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, and `useQueue` initialize universally. Their server instance is not transferred to the browser. The same applies to references, inherited dependencies, imperative handles, reducers, and resources created by `useDisposable`.
+
+Resource disposal follows hook replacement and element unmount, not HTTP response completion. The Jaspr renderer does not guarantee request-end unmounting. Manage database connections and other request resources explicitly in their caller with `try`/`finally`; do not rely on `useDisposable` or browser-only effect cleanup for that lifetime. Server hooks must not depend on live notifications or render-time state mutations to finish the page.
 
 ## Browser DOM hooks
 

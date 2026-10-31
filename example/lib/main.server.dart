@@ -11,6 +11,7 @@ import 'components/docs_chrome.dart';
 import 'components/hook_catalog_view.dart';
 import 'components/hook_demo.dart';
 import 'components/plain_code_block.dart';
+import 'components/server_composition_demo.dart';
 import 'main.server.options.dart';
 
 void main() {
@@ -25,6 +26,10 @@ void main() {
       ],
       components: <CustomComponent>[
         Callout(),
+        CustomComponent(
+          pattern: 'ServerCompositionDemo',
+          builder: (String _, Map<String, String> _, Component? _) => const ServerCompositionDemo(),
+        ),
         CustomComponent(
           pattern: 'AiInstallPrompt',
           builder: (String _, Map<String, String> _, Component? _) => const AiInstallPrompt(),

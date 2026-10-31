@@ -9,6 +9,8 @@ Hook state is associated with call position. The same component must therefore c
 
 Hooks belong directly in `HookComponent.build`, a `StatefulHookComponent` state build, a `HookBuilder`, or another custom `use...` function called synchronously from one of those locations.
 
+`AsyncStatelessComponent.build`, `AsyncBuilder`, preloading, and lifecycle callbacks are not hook hosts. Await server data there, then return a synchronous `HookBuilder` or hook component. See [Server components](guides/server-components).
+
 ```dart
 Component build(BuildContext context) {
   final count = useState(0);

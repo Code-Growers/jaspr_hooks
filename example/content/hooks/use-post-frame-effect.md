@@ -9,6 +9,8 @@ description: Run a client effect after Jaspr completes the next frame.
 
 It is useful when work depends on committed DOM. Stale scheduled callbacks are ignored when keys change or the hook is disposed before the frame completes. Cleanup runs before the next successful invocation and at disposal.
 
+Development hot reload invalidates queued work and schedules the updated effect after the next frame, even when keys match. The previous cleanup runs once before the new effect or on unmount.
+
 ## Signature and parameters
 
 ```dart

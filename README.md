@@ -9,17 +9,20 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> Current stable release: `0.2.0`.
+> `0.3.0-beta.0` is a preview. The API is intentionally being validated in real
+> Jaspr applications before `0.3.0`.
 
 ## Install
 
 ```yaml
 dependencies:
-  jaspr: ^0.23.3
-  jaspr_hooks: ^0.2.0
+  jaspr: ^0.24.0-beta.0
+  jaspr_hooks: ^0.3.0-beta.0
 ```
 
-The package supports Dart `>=3.8.0 <4.0.0` and Jaspr 0.23.x.
+This preview supports Dart `>=3.13.0 <4.0.0` and Jaspr
+`>=0.24.0-beta.0 <0.25.0`. Jaspr 0.23 applications can keep using
+`jaspr_hooks: ^0.2.0` with Dart 3.8 or later.
 
 ## A counter without a State class
 
@@ -92,6 +95,37 @@ for a small hook-enabled subtree.
 
 Jaspr renders a new component tree on the server and hydrates with a separate
 tree in the browser. Hook state is therefore not serialized automatically.
+
+For IDs inside a hydrated `@client` boundary, put a `HookIdScope` above the
+hook host and pass its document-unique seed as a serialized property:
+
+```dart
+return HookIdScope(
+  seed: idScope,
+  child: HookBuilder(builder: (_) {
+    final id = useId();
+    return Component.element(tag: 'input', id: id);
+  }),
+);
+```
+
+Nested client islands need their own scopes. Unscoped `useId` values require
+matching complete element trees to match across server and client.
+
+Await server data in `AsyncStatelessComponent` or `AsyncBuilder`, then return a
+synchronous hook host. `StatefulHookComponent` also works with Jaspr's
+`PreloadStateMixin`. Direct hook calls in async builds are unsupported. Keep
+server children mounted in the initial HTML and toggle their visibility from
+the client wrapper. See the [server components guide](https://code-growers.github.io/jaspr_hooks/guides/server-components/).
+
+`useDisposable` cleanup follows replacement and element unmounting. Server
+response completion does not guarantee unmount; manage request resources
+explicitly with `try`/`finally` in their caller.
+
+Development hot reload preserves matching state, refs, IDs and node keys.
+Memoized values, callbacks, effects and disposable resources refresh on the
+next build; custom hooks can override `HookState.reassemble`. Use hot restart
+for structural hook changes. See the [hot reload guide](https://code-growers.github.io/jaspr_hooks/guides/hot-reload/).
 
 | API | Server/static rendering | Browser |
 | --- | --- | --- |

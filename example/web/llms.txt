@@ -12,9 +12,9 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.2.0
-Dart constraint: >=3.8.0 <4.0.0
-Jaspr constraint: >=0.23.3 <0.24.0 (Jaspr 0.23.x only)
+Current package version: 0.3.0-beta.0
+Dart constraint: >=3.13.0 <4.0.0
+Jaspr constraint: >=0.24.0-beta.0 <0.25.0 (Jaspr 0.24 release line)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
 Browser DOM import: package:jaspr_hooks/web.dart
 
@@ -29,7 +29,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.2.0
+      jaspr_hooks: ^0.3.0-beta.0
 
 Use the universal entry point for components that do not expose native DOM types:
 
@@ -49,6 +49,8 @@ Keep the application's normal Jaspr imports for Component, BuildContext, DOM fac
 - HookBuilder is a small hook-enabled region. Pass builder: (context) { ... } and call hooks synchronously inside that builder.
 - Calling a hook outside an active build of one of these hosts throws StateError.
 
+For async server data, await in AsyncStatelessComponent or AsyncBuilder and return a synchronous hook host, or use StatefulHookComponent with PreloadStateMixin before a synchronous build. Do not call hooks directly in async builds or preloadState. Server component constructor properties must be rendered in the initial SSR output; toggle visibility without unmounting. Nested client boundaries need their own ID scopes.
+
 Minimal example:
 
     import 'package:jaspr/dom.dart';
@@ -67,6 +69,12 @@ Minimal example:
         );
       }
     }
+
+## Hot reload
+
+Jaspr 0.24 reassembly preserves matching state, refs, IDs, node keys, and controllers. useMemoized/useCallback recompute, browser effects clean up and rerun, post-frame effects invalidate queued work, and useDisposable replaces resources on the next build. Custom HookState.reassemble callbacks can invalidate cached work; the next build receives current configuration. Server effects stay inactive. Use hot restart for hook order changes; same-type insertions cannot be detected reliably.
+
+Resource cleanup follows replacement and element unmount, not HTTP response completion. Manage request connections and asynchronous cleanup with explicit try/finally in the caller.
 
 ## Rules of hooks
 
@@ -95,7 +103,7 @@ Jaspr constructs independent hook state on the server and browser. Hook state is
 - Browser lifecycle value hooks return unknown during SSR and the first hydration build. They read browser state and subscribe after the first client frame. Their change-callback variants do not fire for that initial synchronization.
 - useLocation returns null and useBrowserRoute returns its serverRoute during SSR and the first hydration build. useOnWindowFocus attaches after the first client frame.
 - Browser DOM hooks from package:jaspr_hooks/web.dart attach after the first client frame. Value hooks return null before attachment; useNodeKey has no currentNode on the server; event and observer callbacks do not run there.
-- useId derives deterministic markup ids from tree and hook position. useEvent returns a stable callable whose latest handler works on server and client.
+- useId needs a HookIdScope inside each hydrated @client boundary for matching IDs. Serialize a non-empty, document-unique seed; keep the descendant structure and hook order identical. A returned scope cannot scope hooks already called by its own parent build. Unscoped IDs require matching complete element trees. useEvent returns a stable callable whose latest handler works on server and client.
 - Focus, active-element, abort-controller, animation-frame, history, and clipboard hooks are browser-only. They expose null or inert controller state during SSR and activate after the first client frame.
 - Never conditionally skip a hook because context.binding.isClient is false. Select a nullable source or branch inside an effect while preserving hook call order.
 
@@ -178,7 +186,7 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-context/
 
 ### useId
 Signature: String useId({String prefix = 'jh'})
-Returns a deterministic HTML id based on component-tree and hook position. It stays stable across rebuilds and matches between SSR and hydration when tree and hook order match. Changing prefix replaces the id; empty prefixes throw ArgumentError.
+Returns an opaque HTML id, stable across rebuilds and hot reload. For hydrated islands, put HookIdScope(seed: idScope, child: hookHost) inside each @client boundary and serialize a non-empty, document-unique seed. Matching scoped descendant structure and hook order produce matching initial IDs; unscoped IDs require matching complete element ancestry. Changing prefix or scope seed replaces the id. Empty prefixes and seeds throw ArgumentError when useId is called.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-id/
 
 ### useEvent
@@ -195,12 +203,12 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-latest/
 
 ### useDisposable
 Signature: T useDisposable<T>(T Function() create, void Function(T value) dispose, [List<Object?> keys = const []])
-Creates and owns T immediately, preserves it while ordered keys match, and disposes the exact resource on replacement or unmount. Creation and cleanup can run on server and client, so create must be deterministic and platform-safe. Do not dispose the value elsewhere.
+Creates and owns T immediately, preserves it while ordered keys match, and disposes the exact resource on replacement or unmount. Creation and cleanup can run on server and client, so create must be deterministic and platform-safe. Hot reload disposes and recreates it on the next build. Response completion does not guarantee unmount; manage request resources explicitly with try/finally in the caller. Do not dispose the value elsewhere.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-disposable/
 
 ### useExternalStore
 Signature: T useExternalStore<T>(ExternalStoreSubscribe subscribe, T Function() getSnapshot, {T Function()? getServerSnapshot, ExternalStoreSnapshotEquals<T>? equals})
-Reads immutable snapshots and owns the browser unsubscribe callback. A server render without getServerSnapshot throws StateError. Supplying the server snapshot on the client preserves hydration output until post-frame subscription; equals optionally filters rebuilds. subscribe(notify) must return synchronous Dispose.
+Reads immutable snapshots and owns the browser unsubscribe callback. On the server, read getServerSnapshot if supplied, otherwise getSnapshot, without subscribing. Supplying the server snapshot on the client preserves hydration output until post-frame subscription; equals optionally filters rebuilds. subscribe(notify) must return synchronous Dispose.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-external-store/
 
 ### useInherited
@@ -247,12 +255,12 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-post-frame-effect/
 
 ### useMemoized
 Signature: T useMemoized<T>(T Function() valueBuilder, [List<Object?> keys = const []])
-Evaluates valueBuilder immediately and preserves its result until ordered keys change. It does not dispose the value. The builder runs during SSR, so keep it deterministic and free of browser-only work.
+Evaluates valueBuilder immediately and preserves its result until ordered keys change or hot reload invalidates it. It does not dispose the value. The builder runs during SSR, so keep it deterministic and free of browser-only work.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-memoized/
 
 ### useCallback
 Signature: T useCallback<T extends Function>(T callback, [List<Object?> keys = const []])
-Preserves the callback instance until ordered keys change. Include every captured value whose change requires a fresh closure. Equivalent to memoizing the callback.
+Preserves the callback instance until ordered keys change or hot reload refreshes it. Include every captured value whose change requires a fresh closure. Equivalent to memoizing the callback.
 Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-callback/
 
 ### useRef
@@ -543,7 +551,7 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-mutation-observer/
 
 ## Agent completion checklist
 
-- Confirm the target uses native Jaspr 0.23.x and a compatible Dart SDK.
+- Confirm the target uses native Jaspr 0.24.x (including 0.24.0-beta.0) and a compatible Dart SDK.
 - Add jaspr_hooks without adding flutter_hooks or Flutter SDK dependencies.
 - Import package:jaspr_hooks/jaspr_hooks.dart, or package:jaspr_hooks/web.dart for DOM integrations, and choose the smallest suitable hook host.
 - Keep all hook calls unconditional, synchronous, and in a stable order.

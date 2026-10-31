@@ -18,6 +18,17 @@ test('AI agent documentation remains useful without JavaScript', async ({page}) 
   await expect(page.locator('main')).toContainText(/llms\.txt/i);
 });
 
+test('async server content and nested counters are present before hydration', async ({page}) => {
+  const response = await page.goto('guides/server-components/');
+  expect(response?.ok()).toBe(true);
+  const demo = page.locator('[data-server-composition]');
+  await expect(demo.locator('[data-server-content]')).toHaveCount(2);
+  await expect(demo.locator('[data-server-counter]')).toHaveCount(2);
+  expect(await demo.locator('[data-server-content]').first().textContent()).toContain('read from a file on the server');
+  const ids = await demo.locator('[id]').evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
 for (const hook of hookPages) {
   test(`${hook.api} documentation is statically rendered`, async ({page}) => {
     const response = await page.goto(`hooks/${hook.slug}/`);

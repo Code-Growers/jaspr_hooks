@@ -24,14 +24,13 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: e2e/package-lock.json
-      - run: dart pub global activate jaspr_cli 0.23.4
       - run: dart pub get
         working-directory: example
       - name: Build production documentation
         working-directory: example
         env:
           SITE_DOMAIN: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-        run: jaspr build --sitemap-domain "$SITE_DOMAIN"
+        run: dart run jaspr_cli:jaspr build --sitemap-domain "$SITE_DOMAIN"
       - run: npm ci
         working-directory: e2e
       - run: npm run typecheck

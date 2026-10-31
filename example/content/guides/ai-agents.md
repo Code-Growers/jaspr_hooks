@@ -19,7 +19,7 @@ Follow that document's hook rules, SSR/hydration contracts, ownership rules,
 and per-hook API guidance. Use package:jaspr_hooks/jaspr_hooks.dart for the
 universal API, or package:jaspr_hooks/web.dart with package:universal_web/web.dart
 for DOM integrations. Do not import flutter_hooks or add Flutter. Confirm the
-app uses Jaspr >=0.23.3 <0.24.0 and Dart >=3.8.0 <4.0.0, run
+app uses Jaspr >=0.24.0-beta.0 <0.25.0 and Dart >=3.13.0 <4.0.0, run
 `dart pub add jaspr_hooks`, and validate the result with formatting, analysis,
 and relevant tests. Summarize every file changed and any behavior that must
 remain client-only.

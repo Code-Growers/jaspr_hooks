@@ -11,18 +11,16 @@ enum MediaQueryMatch { unknown, matches, doesNotMatch }
 enum PreferredMotion { unknown, reduce, noPreference }
 
 /// Callback invoked after an established document visibility value changes.
-typedef DocumentVisibilityCallback =
-    void Function(
-      DocumentVisibility previous,
-      DocumentVisibility current,
-    );
+typedef DocumentVisibilityCallback = void Function(
+  DocumentVisibility previous,
+  DocumentVisibility current,
+);
 
 /// Callback invoked after an established preferred color scheme changes.
-typedef PreferredColorSchemeCallback =
-    void Function(
-      PreferredColorScheme previous,
-      PreferredColorScheme current,
-    );
+typedef PreferredColorSchemeCallback = void Function(
+  PreferredColorScheme previous,
+  PreferredColorScheme current,
+);
 
 /// Callback invoked after an established media-query result changes.
 typedef MediaQueryCallback = void Function(MediaQueryMatch previous, MediaQueryMatch current);

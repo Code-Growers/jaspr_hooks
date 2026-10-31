@@ -37,9 +37,13 @@ final client = useDisposable<ApiClient>(
 
 The hook exclusively owns the created resource. A key change creates the replacement and disposes the replaced state through the hook runtime; unmount disposes the final value. Cleanup failures are reported by the runtime without preventing cleanup of other hooks.
 
+Development hot reload disposes the old resource and creates a replacement on the next build, using the updated creator and retaining the old resource's original disposer. Unmount before that build disposes only the old resource.
+
 ## Server rendering
 
 Creation and disposal can run on both server and client trees. The initializer must therefore be deterministic and platform-safe. Do not open browser-only resources here from universal components; put those inside a client-only effect or a DOM hook.
+
+Disposal is tied to element unmount, not response completion. Jaspr does not guarantee request-end unmounting. Manage request resources, including database connections and asynchronous cleanup, with explicit `try`/`finally` in the caller. See [Server components](guides/server-components).
 
 ## Common mistakes
 

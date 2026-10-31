@@ -47,6 +47,8 @@ class SaveButton extends HookComponent {
 
 The hook preserves the function reference but does not own resources used by its body. Default empty keys retain the initial callback for the mount; changed keys replace it without cleanup.
 
+Development hot reload refreshes the callback even when keys match. `useEvent` remains the option for a callable whose identity stays stable while its handler updates.
+
 ## Server rendering
 
 Creating the function is safe during SSR, but its body should run only in the environment intended by the event or caller.

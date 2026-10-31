@@ -15,9 +15,12 @@ final class CapturingTestComponentsBinding extends TestComponentsBinding {
   CapturingTestComponentsBinding({
     required bool isClient,
     this.deferInitialPostFrameCallbacks = false,
-  }) : super('/', isClient);
+  }) : _deferringPostFrameCallbacks = deferInitialPostFrameCallbacks,
+       super('/', isClient);
 
   final bool deferInitialPostFrameCallbacks;
+  bool _deferringPostFrameCallbacks;
+  final List<VoidCallback> _deferredPostFrameCallbacks = [];
 
   final List<ReportedBuildError> errors = <ReportedBuildError>[];
   final List<Type> reportingComponentTypes = <Type>[];
@@ -33,14 +36,42 @@ final class CapturingTestComponentsBinding extends TestComponentsBinding {
   }
 
   @override
-  void completeInitialFrame() {
-    if (!deferInitialPostFrameCallbacks) {
-      super.completeInitialFrame();
+  void addPostFrameCallback(VoidCallback callback) {
+    if (_deferringPostFrameCallbacks) {
+      _deferredPostFrameCallbacks.add(callback);
+    } else {
+      super.addPostFrameCallback(callback);
     }
   }
 
+  @override
+  void scheduleFrame(VoidCallback frameCallback) {
+    super.scheduleFrame(() {
+      for (final callback in _takeDeferredPostFrameCallbacks()) {
+        super.addPostFrameCallback(callback);
+      }
+      frameCallback();
+    });
+  }
+
   void flushDeferredPostFrameCallbacks() {
-    super.completeInitialFrame();
+    for (final callback in _takeDeferredPostFrameCallbacks()) {
+      callback();
+    }
+  }
+
+  List<VoidCallback> _takeDeferredPostFrameCallbacks() {
+    _deferringPostFrameCallbacks = false;
+    final callbacks = List<VoidCallback>.of(_deferredPostFrameCallbacks);
+    _deferredPostFrameCallbacks.clear();
+    return callbacks;
+  }
+
+  void reassembleHooks() {
+    rootElement!.visitChildren((element) {
+      // ignore: invalid_use_of_protected_member
+      element.reassemble();
+    });
   }
 
   Future<void> pump() => pumpEventQueue();

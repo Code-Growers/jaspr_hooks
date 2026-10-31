@@ -1,3 +1,21 @@
+# 0.3.0-beta.0
+
+- Require Dart 3.13 and Jaspr 0.24.0-beta.0 or later in the 0.24 release line.
+  Jaspr 0.23 applications can continue using jaspr_hooks 0.2.0.
+- Added `HookIdScope` for stable HTML IDs across server rendering and client
+  island hydration. Pass a unique, serialized seed into each client boundary.
+- Preserve hook state, references, and node keys during hot reload while
+  refreshing memoized values, callbacks, effects, and disposable resources.
+  Custom hooks can respond through `HookState.reassemble()`.
+- Added generated-client coverage and an interactive example for hook-based
+  client wrappers containing async server components and nested client islands.
+- Documented synchronous server hook composition, async preloading, hydration
+  boundaries, and the distinction between unmount cleanup and request lifetime.
+- Updated the test harness to use public scheduler APIs and aligned the
+  example, CLI, builder, lint, and test dependencies with the Jaspr beta.
+- Constrained `http` to 0.13.2 or later because Jaspr's beta server imports
+  `retry.dart`, which is absent from older versions allowed by its dependency.
+
 # 0.2.0
 
 - Added `useGuardedState`, whose `GuardedValueNotifier` drops assignments made

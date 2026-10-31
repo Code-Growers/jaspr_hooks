@@ -14,15 +14,32 @@ class ObjectRef<T> {
   T value;
 }
 
-/// Preserves a mutable [ObjectRef] across builds.
-ObjectRef<T> useRef<T>(T initialValue) => useMemoized(() => ObjectRef<T>(initialValue));
+/// Preserves a mutable [ObjectRef] across builds and hot reload.
+ObjectRef<T> useRef<T>(T initialValue) => use(_RefHook<T>(initialValue));
 
-/// Preserves [callback] until one of [keys] changes.
+class _RefHook<T> extends Hook<ObjectRef<T>> {
+  const _RefHook(this.initialValue);
+
+  final T initialValue;
+
+  @override
+  _RefHookState<T> createState() => _RefHookState<T>();
+}
+
+class _RefHookState<T> extends HookState<ObjectRef<T>, _RefHook<T>> {
+  late final ObjectRef<T> _reference = ObjectRef<T>(hook.initialValue);
+
+  @override
+  ObjectRef<T> build(BuildContext context) => _reference;
+}
+
+/// Preserves [callback] until one of [keys] changes or hot reload refreshes it.
 T useCallback<T extends Function>(T callback, [List<Object?> keys = const <Object>[]]) {
   return useMemoized(() => callback, keys);
 }
 
-/// Evaluates [valueBuilder] once and caches its value until [keys] change.
+/// Evaluates [valueBuilder] once and caches its value until [keys] change or
+/// development hot reload invalidates the cache.
 T useMemoized<T>(T Function() valueBuilder, [List<Object?> keys = const <Object>[]]) {
   return use(_MemoizedHook<T>(valueBuilder, keys: keys));
 }
@@ -37,10 +54,22 @@ class _MemoizedHook<T> extends Hook<T> {
 }
 
 class _MemoizedHookState<T> extends HookState<T, _MemoizedHook<T>> {
-  late final T value = hook.valueBuilder();
+  T? _value;
+  bool _hasValue = false;
 
   @override
-  T build(BuildContext context) => value;
+  void reassemble() {
+    _hasValue = false;
+  }
+
+  @override
+  T build(BuildContext context) {
+    if (!_hasValue) {
+      _value = hook.valueBuilder();
+      _hasValue = true;
+    }
+    return _value as T;
+  }
 }
 
 /// Calls [valueChange] when [value] changes and returns its latest result.
@@ -82,6 +111,7 @@ typedef Dispose = void Function();
 /// Effects are skipped during server and static rendering. With omitted
 /// [keys], the previous cleanup runs and the effect reruns on every client
 /// build. With keys, it reruns only when their ordered contents change.
+/// Development hot reload also cleans up and reruns the effect.
 void useEffect(Dispose? Function() effect, [List<Object?>? keys]) {
   use(_EffectHook(effect, keys));
 }
@@ -97,6 +127,12 @@ class _EffectHook extends Hook<void> {
 
 class _EffectHookState extends HookState<void, _EffectHook> {
   Dispose? _disposer;
+  bool _needsRerun = false;
+
+  @override
+  void reassemble() {
+    _needsRerun = true;
+  }
 
   @override
   void initHook() {
@@ -107,7 +143,8 @@ class _EffectHookState extends HookState<void, _EffectHook> {
 
   @override
   void didUpdateHook(_EffectHook oldHook) {
-    if (hook.keys == null && context.binding.isClient) {
+    if ((hook.keys == null || _needsRerun) && context.binding.isClient) {
+      _needsRerun = false;
       _runCleanupSafely();
       _runEffect();
     }
@@ -144,6 +181,7 @@ class _EffectHookState extends HookState<void, _EffectHook> {
 ///
 /// The scheduled callback is invalidated when this hook is disposed or its
 /// keys change before execution. This hook never runs on the server.
+/// Hot reload invalidates queued callbacks and schedules the updated effect.
 void usePostFrameEffect(Dispose? Function() effect, [List<Object?>? keys]) {
   use(_PostFrameEffectHook(effect, keys));
 }
@@ -161,6 +199,13 @@ class _PostFrameEffectHook extends Hook<void> {
 class _PostFrameEffectHookState extends HookState<void, _PostFrameEffectHook> {
   Dispose? _disposer;
   int _generation = 0;
+  bool _needsRerun = false;
+
+  @override
+  void reassemble() {
+    _generation++;
+    _needsRerun = true;
+  }
 
   @override
   void initHook() {
@@ -169,7 +214,8 @@ class _PostFrameEffectHookState extends HookState<void, _PostFrameEffectHook> {
 
   @override
   void didUpdateHook(_PostFrameEffectHook oldHook) {
-    if (hook.effectKeys == null || !_keysMatch(oldHook.effectKeys, hook.effectKeys)) {
+    if (_needsRerun || hook.effectKeys == null || !_keysMatch(oldHook.effectKeys, hook.effectKeys)) {
+      _needsRerun = false;
       _schedule();
     }
   }

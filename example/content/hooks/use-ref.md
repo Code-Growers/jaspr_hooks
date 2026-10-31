@@ -49,6 +49,8 @@ class RequestTracker extends HookComponent {
 
 The hook owns the reference object but does not dispose values assigned to it. A later `initialValue` is ignored while the hook state is preserved, and mutation never requests a rebuild.
 
+The cell and its current value survive development hot reload when hook order matches. Unlike `useMemoized`, it does not recompute on reload.
+
 ## Server rendering
 
 The initial ref exists during SSR. Avoid mutating it in ways that make the server and hydration markup diverge.

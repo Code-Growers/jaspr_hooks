@@ -5,15 +5,31 @@ import 'package:jaspr/jaspr.dart';
 import 'package:universal_web/web.dart' as web;
 
 import 'framework.dart';
-import 'primitives.dart';
 import 'web_hooks_platform_stub.dart' if (dart.library.js_interop) 'web_hooks_platform_web.dart' as platform;
 import 'web_hooks_types.dart';
 
 export 'web_hooks_types.dart';
 
 /// Creates a stable Jaspr key that exposes its rendered browser node.
+/// The key survives development hot reload.
 GlobalNodeKey<T> useNodeKey<T extends web.Node>({String? debugLabel}) {
-  return useMemoized(() => GlobalNodeKey<T>(debugLabel: debugLabel));
+  return use(_NodeKeyHook<T>(debugLabel));
+}
+
+class _NodeKeyHook<T extends web.Node> extends Hook<GlobalNodeKey<T>> {
+  const _NodeKeyHook(this.debugLabel);
+
+  final String? debugLabel;
+
+  @override
+  _NodeKeyHookState<T> createState() => _NodeKeyHookState<T>();
+}
+
+class _NodeKeyHookState<T extends web.Node> extends HookState<GlobalNodeKey<T>, _NodeKeyHook<T>> {
+  late final GlobalNodeKey<T> _key = GlobalNodeKey<T>(debugLabel: hook.debugLabel);
+
+  @override
+  GlobalNodeKey<T> build(BuildContext context) => _key;
 }
 
 /// Returns the latest size of [target], or null before browser attachment.

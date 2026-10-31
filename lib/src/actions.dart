@@ -23,11 +23,10 @@ enum ActionConcurrency {
 }
 
 /// Computes the next state for an asynchronous action.
-typedef AsyncActionHandler<StateT, InputT> =
-    FutureOr<StateT> Function(
-      StateT previousState,
-      InputT input,
-    );
+typedef AsyncActionHandler<StateT, InputT> = FutureOr<StateT> Function(
+  StateT previousState,
+  InputT input,
+);
 
 /// A stable controller for user-initiated asynchronous state changes.
 abstract interface class AsyncAction<StateT, InputT> {
