@@ -15,7 +15,7 @@ Jaspr creates one component tree while pre-rendering and another while hydrating
 | Future and stream hooks | Sources must be null | Subscribe normally |
 | Browser DOM hooks | Return documented fallbacks without attaching | Activate after attachment |
 
-Hooks run synchronously in `HookComponent.build`, a `StatefulHookComponent` state build, or `HookBuilder`. To await server data, return one of these hosts from `AsyncStatelessComponent` or use `PreloadStateMixin` before a synchronous build. Direct hooks in an async build are unsupported. See [Server components](guides/server-components) for a complete example.
+Hooks run synchronously in `HookComponent.build`, a `StatefulHookComponent` state build, or `HookBuilder`. To await server data, return one of these hosts from `AsyncStatelessComponent` or use `PreloadStateMixin` before a synchronous build. Experimental `AsyncHookComponent` and `AsyncHookBuilder` also allow direct hooks across sequential awaits through `package:jaspr_hooks/server.dart`; ordinary Jaspr async builds do not. See [Async server hooks](guides/async-server-hooks) for their stricter state and lifecycle rules.
 
 ## Hydration boundaries and IDs
 

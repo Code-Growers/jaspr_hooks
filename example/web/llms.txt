@@ -12,11 +12,12 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.3.0-beta.0
+Current package version: 0.3.0-beta.1
 Dart constraint: >=3.13.0 <4.0.0
 Jaspr constraint: >=0.24.0-beta.0 <0.25.0 (Jaspr 0.24 release line)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
 Browser DOM import: package:jaspr_hooks/web.dart
+Experimental async server import: package:jaspr_hooks/server.dart
 
 Before installation, inspect the application's pubspec.yaml. Do not install this version into a project on an incompatible Jaspr release. Do not add flutter_hooks or replace Jaspr components with Flutter widgets.
 
@@ -29,7 +30,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.3.0-beta.0
+      jaspr_hooks: ^0.3.0-beta.1
 
 Use the universal entry point for components that do not expose native DOM types:
 
@@ -47,9 +48,10 @@ Keep the application's normal Jaspr imports for Component, BuildContext, DOM fac
 - HookComponent extends StatelessComponent. Subclass it and call hooks from its build(BuildContext) method.
 - StatefulHookComponent extends StatefulComponent. Use it when hooks must coexist with a Jaspr State or state mixins; call hooks from the associated State.build method.
 - HookBuilder is a small hook-enabled region. Pass builder: (context) { ... } and call hooks synchronously inside that builder.
+- AsyncHookComponent extends Jaspr AsyncStatelessComponent; AsyncHookBuilder is its callback variant. They are experimental server-only APIs from package:jaspr_hooks/server.dart. Hooks may span sequential awaits in one awaited call chain. Do not annotate them with @client.
 - Calling a hook outside an active build of one of these hosts throws StateError.
 
-For async server data, await in AsyncStatelessComponent or AsyncBuilder and return a synchronous hook host, or use StatefulHookComponent with PreloadStateMixin before a synchronous build. Do not call hooks directly in async builds or preloadState. Server component constructor properties must be rendered in the initial SSR output; toggle visibility without unmounting. Nested client boundaries need their own ID scopes.
+For async server data, await in AsyncStatelessComponent or AsyncBuilder and return a synchronous hook host, or use StatefulHookComponent with PreloadStateMixin before a synchronous build. Ordinary Jaspr async builds and preloadState do not support direct hooks; explicitly use the experimental async hook hosts for hooks across sequential awaits. Server component constructor properties must be rendered in the initial SSR output; toggle visibility without unmounting. Nested client boundaries need their own ID scopes.
 
 Minimal example:
 
@@ -70,6 +72,16 @@ Minimal example:
       }
     }
 
+## Experimental async server hooks
+
+Import package:jaspr_hooks/server.dart only in server scope. AsyncHookComponent and AsyncHookBuilder keep a generation-checked Zone-local build session across sequential awaits. useContext returns that host before and after await. Independent requests and sibling hosts do not share state. Nested synchronous or async hook hosts own separate hook state; ordinary AsyncBuilder descendants do not acquire a hook session.
+
+Closed sessions reject late hook calls after completion, failure, or unmount, including callbacks that captured the old zone. Failed builds dispose all hooks in reverse order, report cleanup errors without skipping other disposers, and let Jaspr complete an error response. Unmount invalidates pending work and ignores the underlying future's late result or error; it cannot physically cancel that future. Same-owner rebuilds are serialized and discard superseded results.
+
+useState/useGuardedState are read-only initial snapshots in async hosts. Reactive controller/reducer updates throw. Refs can hold non-reactive computations; effects and browser subscriptions stay inactive, and live Future/Stream sources are still forbidden. Successful builds retain hook resources until unmount, not HTTP response completion. Manage request resources and async cleanup explicitly with try/finally. Do not call hooks from parallel branches, timers, events, or unawaited work. Parallel I/O without hooks is fine; await its results before the next hook call.
+
+Docs: https://code-growers.github.io/jaspr_hooks/guides/async-server-hooks/
+
 ## Hot reload
 
 Jaspr 0.24 reassembly preserves matching state, refs, IDs, node keys, and controllers. useMemoized/useCallback recompute, browser effects clean up and rerun, post-frame effects invalidate queued work, and useDisposable replaces resources on the next build. Custom HookState.reassemble callbacks can invalidate cached work; the next build receives current configuration. Server effects stay inactive. Use hot restart for hook order changes; same-type insertions cannot be detected reliably.
@@ -78,7 +90,7 @@ Resource cleanup follows replacement and element unmount, not HTTP response comp
 
 ## Rules of hooks
 
-1. Call hooks synchronously at the top level of a HookComponent build, a StatefulHookComponent State.build, a HookBuilder builder, or a custom use... function invoked from one of those locations.
+1. Call hooks synchronously at the top level of a HookComponent build, a StatefulHookComponent State.build, a HookBuilder builder, or a custom use... function invoked from one of those locations. Experimental async server hook hosts also support hooks in one sequential awaited chain. Parallel branches and detached callbacks must not call hooks; the runtime cannot infer every async fork.
 2. Call the same hook runtime types in the same order on every build. Never put a hook call behind a condition, variable-length loop, early return, event handler, timer, Future callback, or Stream callback.
 3. Put conditions inside the hook callback instead. For repeated variable-length content, extract a hook component per item.
 4. Ordered keys define hook resource identity. Include every captured value that changes the resource or callback identity. A default empty key list preserves a value for the mount. A nullable omitted key list on effects means rerun on every client build.

@@ -16,12 +16,17 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: {
+  webServer: [{
     command: 'node stage.mjs && node server.mjs',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-  },
+  }, {
+    command: 'node async-server.mjs',
+    url: 'http://127.0.0.1:4174/__health',
+    reuseExistingServer: false,
+    timeout: 60_000,
+  }],
   projects: [
     {
       name: 'chromium',

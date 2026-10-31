@@ -5,7 +5,7 @@ description: Diagnose hook-order errors, SSR source errors, stale values, and hy
 
 ## “Hooks can only be called while a hook component is building”
 
-The hook ran outside `HookComponent`, `StatefulHookComponent`, or `HookBuilder`, or it ran later from an event callback. Call hooks synchronously during build and capture their returned values for callbacks.
+The hook ran outside an active hook host or later from a callback. Call hooks synchronously in `HookComponent`, `StatefulHookComponent`, or `HookBuilder`. The experimental async server hosts also permit a single sequential awaited chain, but their session closes after the build finishes; late callbacks cannot call hooks. Capture returned values for callbacks. See [Async server hooks](guides/async-server-hooks).
 
 ```dart
 final count = useState(0);

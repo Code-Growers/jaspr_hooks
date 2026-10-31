@@ -1,6 +1,7 @@
 // This runtime is substantially adapted from flutter_hooks 0.21.3+1.
 // Copyright (c) 2018 Remi Rousselet. Licensed under the MIT License.
 
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 
@@ -10,14 +11,14 @@ import 'package:jaspr/jaspr.dart';
 /// value.
 ///
 /// Hooks must be called unconditionally and in the same order on every build.
-/// Calling this function outside [HookComponent], [StatefulHookComponent], or
-/// [HookBuilder] throws a [StateError].
+/// Calling this function outside [HookComponent], [StatefulHookComponent],
+/// [HookBuilder], or a server-only async hook host throws a [StateError].
 R use<R>(Hook<R> hook) {
-  final element = _HookElement._currentHookElement;
+  final element = HookElement.currentHookElement;
   if (element == null) {
     throw StateError(
       'Hooks can only be called while a HookComponent, '
-      'StatefulHookComponent, or HookBuilder is building.',
+      'StatefulHookComponent, HookBuilder, or async hook host is building.',
     );
   }
   return element._use(hook);
@@ -100,7 +101,7 @@ String useId({String prefix = 'jh'}) {
   if (prefix.isEmpty) {
     throw ArgumentError.value(prefix, 'prefix', 'must not be empty');
   }
-  final element = _HookElement._currentHookElement;
+  final element = HookElement.currentHookElement;
   if (element == null) {
     throw StateError('useId() can only be called while a hook component is building.');
   }
@@ -224,7 +225,7 @@ abstract class HookState<R, H extends Hook<R>> {
   /// Creates mutable lifecycle state for a custom [Hook].
   HookState();
 
-  _HookElement? _element;
+  HookElement? _element;
   H? _hook;
 
   /// The build context of the component that owns this hook.
@@ -284,6 +285,7 @@ abstract class HookState<R, H extends Hook<R>> {
     if (element == null) {
       throw StateError('markMayNeedRebuild() called after the hook was disposed.');
     }
+    element._checkCanRequestRebuild();
     if (element._isOptionalRebuild != false) {
       element
         .._isOptionalRebuild = true
@@ -299,6 +301,7 @@ abstract class HookState<R, H extends Hook<R>> {
     if (element == null) {
       throw StateError('setState() called after the hook was disposed.');
     }
+    element._checkCanRequestRebuild();
     callback();
     element._isOptionalRebuild = false;
     element._requestRebuild();
@@ -333,7 +336,7 @@ abstract class HookComponent extends StatelessComponent {
   Element createElement() => _StatelessHookElement(this);
 }
 
-class _StatelessHookElement extends StatelessElement with _HookElement {
+class _StatelessHookElement extends StatelessElement with HookElement, _SynchronousHookElement {
   _StatelessHookElement(HookComponent super.component);
 }
 
@@ -349,7 +352,7 @@ abstract class StatefulHookComponent extends StatefulComponent {
   Element createElement() => _StatefulHookElement(this);
 }
 
-class _StatefulHookElement extends StatefulElement with _HookElement {
+class _StatefulHookElement extends StatefulElement with HookElement, _SynchronousHookElement {
   _StatefulHookElement(StatefulHookComponent super.component);
 }
 
@@ -367,16 +370,40 @@ class HookBuilder extends HookComponent {
 
 /// Returns the [BuildContext] of the currently building hook component.
 BuildContext useContext() {
-  final element = _HookElement._currentHookElement;
+  final element = HookElement.currentHookElement;
   if (element == null) {
     throw StateError('useContext() can only be called while a hook component is building.');
   }
   return element;
 }
 
-mixin _HookElement on BuildableElement {
-  static _HookElement? _currentHookElement;
+/// Internal lifecycle bridge shared with the server-only async elements.
+///
+/// @nodoc
+mixin HookElement on BuildableElement {
+  static HookElement? _currentHookElement;
   static int _buildDepth = 0;
+  static final Object _asyncSessionKey = Object();
+
+  static HookElement? get currentHookElement {
+    final synchronous = _currentHookElement;
+    // Async sessions are server-only; keep their Zone lookup out of web builds.
+    if (synchronous != null || kIsWeb) return synchronous;
+    final session = Zone.current[_asyncSessionKey] as _AsyncHookBuildSession?;
+    if (session == null) return null;
+    final element = session.element;
+    if (!session.open ||
+        element == null ||
+        element._isUnmounted ||
+        !identical(element._asyncSession, session) ||
+        session.generation != element._asyncGeneration) {
+      throw StateError(
+        'This async hook build has completed or been unmounted. '
+        'Hooks cannot be called from callbacks that outlive their build.',
+      );
+    }
+    return element;
+  }
 
   final LinkedList<_Entry<HookState<Object?, Hook<Object?>>>> _hooks = LinkedList();
   final LinkedList<_Entry<bool Function()>> _shouldRebuildQueue = LinkedList();
@@ -390,6 +417,63 @@ mixin _HookElement on BuildableElement {
   bool _isUnmounted = false;
   bool _didReassemble = false;
   int _currentHookIndex = 0;
+  int _asyncGeneration = 0;
+  _AsyncHookBuildSession? _asyncSession;
+
+  bool get isAsyncHookElement => false;
+  bool get isHookUnmounted => _isUnmounted;
+
+  void _checkCanRequestRebuild() {
+    if (isAsyncHookElement) {
+      throw StateError(
+        'Async server hook hosts cannot request reactive rebuilds. '
+        'Use hook values as initial snapshots and await server data directly.',
+      );
+    }
+  }
+
+  Future<Component> runAsyncHookBuild(Future<Component> Function() builder) async {
+    if (binding.isClient) {
+      throw StateError('Async hook hosts can only build on the server.');
+    }
+    if (_isUnmounted) throw StateError('The async hook host has been unmounted.');
+    if (_asyncSession != null) throw StateError('An async hook build is already active for this element.');
+
+    final session = _AsyncHookBuildSession(this, ++_asyncGeneration);
+    _asyncSession = session;
+    _prepareHookBuild();
+    try {
+      // Normalize synchronous throws into the same observed future path as
+      // awaited failures before racing it against unmount cancellation.
+      final future = Future<Component>.sync(() => runZoned(builder, zoneValues: {_asyncSessionKey: session}));
+      final built = await Future.any([future, session.cancelled.future]);
+      if (_isUnmounted || !session.open || !identical(_asyncSession, session)) {
+        throw StateError('The async hook build was cancelled.');
+      }
+      return _buildCache = built;
+    } catch (_) {
+      if (!_isUnmounted) _disposeAllHooks();
+      rethrow;
+    } finally {
+      session.close();
+      if (identical(_asyncSession, session)) {
+        _asyncSession = null;
+        _finishHookBuild();
+      }
+    }
+  }
+
+  void _prepareHookBuild() {
+    _currentHookState = _hooks.isEmpty ? null : _hooks.first;
+    _currentHookIndex = 0;
+  }
+
+  void _finishHookBuild() {
+    _didReassemble = false;
+    _isOptionalRebuild = null;
+    _removeRemainingHooks();
+    _disposePendingHooks();
+  }
 
   @override
   void update(covariant Component newComponent) {
@@ -421,38 +505,6 @@ mixin _HookElement on BuildableElement {
   void onReload() {
     _isOptionalRebuild = false;
     super.onReload();
-  }
-
-  @override
-  Component build() {
-    final mustRebuild = _isOptionalRebuild != true || _shouldRebuildQueue.any((callback) => callback.value());
-    _isOptionalRebuild = null;
-    _shouldRebuildQueue.clear();
-
-    if (!mustRebuild) {
-      final cache = _buildCache;
-      if (cache == null) {
-        throw StateError('A hook component attempted to reuse an empty build cache.');
-      }
-      return cache;
-    }
-
-    _currentHookState = _hooks.isEmpty ? null : _hooks.first;
-    _currentHookIndex = 0;
-    final previousElement = _currentHookElement;
-    _currentHookElement = this;
-    _buildDepth++;
-    try {
-      _buildCache = super.build();
-      return _buildCache!;
-    } finally {
-      _buildDepth--;
-      _didReassemble = false;
-      _isOptionalRebuild = null;
-      _removeRemainingHooks();
-      _currentHookElement = previousElement;
-      _disposePendingHooks();
-    }
   }
 
   /// Jaspr clears an element's dirty flag only after its build returns, so a
@@ -576,6 +628,17 @@ mixin _HookElement on BuildableElement {
     _pendingDisposals = null;
   }
 
+  void _disposeAllHooks() {
+    if (_hooks.isNotEmpty) {
+      for (_Entry<HookState<Object?, Hook<Object?>>>? entry = _hooks.last; entry != null; entry = entry.previous) {
+        _disposeHook(entry.value);
+      }
+      _hooks.clear();
+    }
+    _currentHookState = null;
+    _disposePendingHooks();
+  }
+
   void _disposeHook(HookState<Object?, Hook<Object?>> state) {
     try {
       state.dispose();
@@ -614,6 +677,8 @@ mixin _HookElement on BuildableElement {
   @override
   void unmount() {
     _isUnmounted = true;
+    _asyncGeneration++;
+    _asyncSession?.cancel();
     final errorContext = _CleanupErrorElement(component);
     Object? unmountError;
     StackTrace? unmountStackTrace;
@@ -625,19 +690,63 @@ mixin _HookElement on BuildableElement {
       unmountStackTrace = stackTrace;
     }
     try {
-      if (_hooks.isNotEmpty) {
-        for (_Entry<HookState<Object?, Hook<Object?>>>? entry = _hooks.last; entry != null; entry = entry.previous) {
-          _disposeHook(entry.value);
-        }
-        _hooks.clear();
-      }
-      _disposePendingHooks();
+      _disposeAllHooks();
     } finally {
       _cleanupErrorContext = null;
     }
     if (unmountError != null) {
       Error.throwWithStackTrace(unmountError, unmountStackTrace!);
     }
+  }
+}
+
+mixin _SynchronousHookElement on BuildableElement, HookElement {
+  @override
+  Component build() {
+    final mustRebuild = _isOptionalRebuild != true || _shouldRebuildQueue.any((callback) => callback.value());
+    _isOptionalRebuild = null;
+    _shouldRebuildQueue.clear();
+
+    if (!mustRebuild) {
+      final cache = _buildCache;
+      if (cache == null) {
+        throw StateError('A hook component attempted to reuse an empty build cache.');
+      }
+      return cache;
+    }
+
+    _prepareHookBuild();
+    final previousElement = HookElement._currentHookElement;
+    HookElement._currentHookElement = this;
+    HookElement._buildDepth++;
+    try {
+      _buildCache = super.build();
+      return _buildCache!;
+    } finally {
+      HookElement._buildDepth--;
+      HookElement._currentHookElement = previousElement;
+      _finishHookBuild();
+    }
+  }
+}
+
+class _AsyncHookBuildSession {
+  _AsyncHookBuildSession(this.element, this.generation);
+
+  HookElement? element;
+  final int generation;
+  final Completer<Component> cancelled = Completer<Component>();
+  bool open = true;
+
+  void close() {
+    open = false;
+    element = null;
+  }
+
+  void cancel() {
+    if (!open) return;
+    close();
+    cancelled.completeError(StateError('The async hook host was unmounted during its build.'));
   }
 }
 

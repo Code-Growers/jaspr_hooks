@@ -9,7 +9,7 @@ Hook state is associated with call position. The same component must therefore c
 
 Hooks belong directly in `HookComponent.build`, a `StatefulHookComponent` state build, a `HookBuilder`, or another custom `use...` function called synchronously from one of those locations.
 
-`AsyncStatelessComponent.build`, `AsyncBuilder`, preloading, and lifecycle callbacks are not hook hosts. Await server data there, then return a synchronous `HookBuilder` or hook component. See [Server components](guides/server-components).
+Ordinary `AsyncStatelessComponent.build`, `AsyncBuilder`, preloading, and lifecycle callbacks are not hook hosts. Await server data there, then return a synchronous `HookBuilder` or hook component. Experimental `AsyncHookComponent` and `AsyncHookBuilder` explicitly support sequential awaited hook calls on the server. Call hooks in one awaited chain; parallel branches and detached callbacks must not call hooks. See [Async server hooks](guides/async-server-hooks).
 
 ```dart
 Component build(BuildContext context) {

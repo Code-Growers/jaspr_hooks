@@ -248,7 +248,7 @@ Directory _findExampleRoot() {
 }
 
 Set<String> _exportedUseApis(Directory packageRoot) {
-  final RegExp exportPattern = RegExp(r"export '([^']+)';");
+  final RegExp exportPattern = RegExp(r"export '([^']+)'[^;]*;");
   final RegExp declarationPattern = RegExp(
     r'^\S[^\n=;{}]*?\b(use(?:[A-Z][A-Za-z0-9_]*)?)'
     r'\s*(?:<[^>\n]*>)?\s*\(',
@@ -256,7 +256,7 @@ Set<String> _exportedUseApis(Directory packageRoot) {
   );
 
   final Set<String> names = <String>{};
-  for (final String entrypoint in <String>['jaspr_hooks.dart', 'web.dart']) {
+  for (final String entrypoint in <String>['jaspr_hooks.dart', 'web.dart', 'server.dart']) {
     final File library = File('${packageRoot.path}/lib/$entrypoint');
     for (final RegExpMatch export in exportPattern.allMatches(library.readAsStringSync())) {
       final File source = File('${packageRoot.path}/lib/${export.group(1)}');

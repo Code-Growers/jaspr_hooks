@@ -483,6 +483,7 @@ const List<({String title, String href})> guideCatalog = <({String title, String
   (title: 'Rules of hooks', href: 'guides/rules-of-hooks'),
   (title: 'SSR & hydration', href: 'guides/ssr-and-hydration'),
   (title: 'Server components', href: 'guides/server-components'),
+  (title: 'Async server hooks', href: 'guides/async-server-hooks'),
   (title: 'Hot reload', href: 'guides/hot-reload'),
   (title: 'Writing custom hooks', href: 'guides/custom-hooks'),
   (title: 'Migrating from flutter_hooks', href: 'guides/migration'),

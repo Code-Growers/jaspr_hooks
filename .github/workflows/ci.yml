@@ -78,12 +78,32 @@ jobs:
             '  final windowSizeHook = useWindowSize;' \
             '  print((visibilityHook, visibilityChangeHook, colorSchemeHook, colorSchemeChangeHook, mediaHook, motionHook, nodeKey, focusHook, focusWithinHook, activeElementHook, abortControllerHook, animationFrameHook, historyStateHook, clipboardHook, windowSizeHook));' \
             '}' > "$fixture/lib/web.dart"
+          cat > "$fixture/lib/server.dart" <<'DART'
+          import 'dart:convert';
+          import 'package:jaspr/server.dart';
+          import 'package:jaspr_hooks/server.dart';
+
+          Future<void> main() async {
+            Jaspr.initializeApp();
+            final response = await renderComponent(AsyncHookBuilder(builder: (_) async {
+              final before = useRef(1);
+              await Future<void>.value();
+              final after = useMemoized(() => 2);
+              return Component.text('server:${before.value}:$after');
+            }));
+            if (response.statusCode != 200 || !utf8.decode(response.body).contains('server:1:2')) {
+              throw StateError('Async server hook lower-bound render failed.');
+            }
+          }
+          DART
           cd "$fixture"
           dart pub get
           dart pub downgrade
           dart analyze
           dart compile exe lib/main.dart -o lower_bound_consumer
           dart compile js lib/web.dart -o lower_bound_consumer.js
+          dart compile exe lib/server.dart -o lower_bound_server_consumer
+          ./lower_bound_server_consumer
 
   docs-and-e2e:
     name: Static docs and Chromium E2E

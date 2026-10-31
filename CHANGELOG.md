@@ -1,3 +1,16 @@
+# 0.3.0-beta.1
+
+- Added experimental `AsyncHookComponent` and `AsyncHookBuilder` through the
+  server-only `package:jaspr_hooks/server.dart` entry point. Hooks can span
+  sequential awaits with an isolated, generation-checked build session.
+- Close async hook sessions on completion, failure, and unmount. Failed builds
+  dispose owned hooks in reverse order; unmount invalidates pending work and
+  ignores late results and errors. Rebuilds of one owner are serialized.
+- Async hook state is an initial snapshot; reactive state mutations throw.
+  Effects remain inactive and live Future/Stream sources remain unsupported.
+- Added live HTTP E2E coverage for interleaved requests, generated hydration
+  boundaries, nested hosts, 500 responses, failure cleanup, and cancellation.
+
 # 0.3.0-beta.0
 
 - Require Dart 3.13 and Jaspr 0.24.0-beta.0 or later in the 0.24 release line.

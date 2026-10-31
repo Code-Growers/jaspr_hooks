@@ -9,7 +9,7 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.3.0-beta.0` is a preview. The API is intentionally being validated in real
+> `0.3.0-beta.1` is a preview. The API is intentionally being validated in real
 > Jaspr applications before `0.3.0`.
 
 ## Install
@@ -17,7 +17,7 @@ HTML on the server and in the browser.
 ```yaml
 dependencies:
   jaspr: ^0.24.0-beta.0
-  jaspr_hooks: ^0.3.0-beta.0
+  jaspr_hooks: ^0.3.0-beta.1
 ```
 
 This preview supports Dart `>=3.13.0 <4.0.0` and Jaspr
@@ -114,7 +114,7 @@ matching complete element trees to match across server and client.
 
 Await server data in `AsyncStatelessComponent` or `AsyncBuilder`, then return a
 synchronous hook host. `StatefulHookComponent` also works with Jaspr's
-`PreloadStateMixin`. Direct hook calls in async builds are unsupported. Keep
+`PreloadStateMixin`. Ordinary Jaspr async builds do not establish a hook session. Keep
 server children mounted in the initial HTML and toggle their visibility from
 the client wrapper. See the [server components guide](https://code-growers.github.io/jaspr_hooks/guides/server-components/).
 
@@ -126,6 +126,34 @@ Development hot reload preserves matching state, refs, IDs and node keys.
 Memoized values, callbacks, effects and disposable resources refresh on the
 next build; custom hooks can override `HookState.reassemble`. Use hot restart
 for structural hook changes. See the [hot reload guide](https://code-growers.github.io/jaspr_hooks/guides/hot-reload/).
+
+Experimental `AsyncHookComponent` and `AsyncHookBuilder` support hooks across
+sequential awaits in server scope:
+
+```dart
+import 'package:jaspr/server.dart';
+import 'package:jaspr_hooks/server.dart';
+
+class UserDetails extends AsyncHookComponent {
+  const UserDetails({required this.userId, super.key});
+  final String userId;
+
+  @override
+  Future<Component> build(BuildContext context) async {
+    final source = useRef(userId);
+    final user = await loadUser(source.value);
+    final label = useMemoized(() => formatUser(user), [user]);
+    return Component.text(label);
+  }
+}
+```
+
+Each build has its own session, which closes on completion, failure or unmount.
+Call hooks in one awaited chain; parallel branches and detached callbacks must
+not call hooks. State hooks are read-only initial snapshots, effects stay
+inactive, and live Future/Stream sources remain unsupported. Successful builds
+retain resources until unmount; request cleanup remains caller-owned. See the
+[async server hooks guide](https://code-growers.github.io/jaspr_hooks/guides/async-server-hooks/).
 
 | API | Server/static rendering | Browser |
 | --- | --- | --- |

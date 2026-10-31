@@ -73,7 +73,7 @@ class UserDetails extends AsyncStatelessComponent {
 }
 ```
 
-The hook calls belong to the returned builder. Calling hooks directly in an async build, before or after `await`, is unsupported. Keep calls synchronous and in a stable order. Await multiple data sources first, then construct the hook host.
+The hook calls belong to the returned builder. Ordinary Jaspr async builds do not support direct hook calls. For hooks across sequential awaits, explicitly use the experimental `AsyncHookComponent` or `AsyncHookBuilder` from `package:jaspr_hooks/server.dart`; see [Async server hooks](guides/async-server-hooks). The interactive demo above uses both async hook hosts.
 
 For a stateful alternative, extend `StatefulHookComponent`, preload data with `PreloadStateMixin`, and call hooks in the synchronous `State.build`. `preloadState` runs only on the server; a hydrated component still needs serialized constructor properties or synchronized state to reproduce its initial data in the browser. Hooks cannot be called from `preloadState` or `initState`.
 

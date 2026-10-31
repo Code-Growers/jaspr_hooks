@@ -277,6 +277,7 @@ class _ComparisonHook extends Hook<Object?> {
 }
 
 /// Creates a [ValueNotifier] that rebuilds its owning component when changed.
+/// Async server hook hosts expose a read-only initial snapshot instead.
 ValueNotifier<T> useState<T>(T initialData) => use(_StateHook<T>(initialData));
 
 class _StateHook<T> extends Hook<ValueNotifier<T>> {
@@ -289,7 +290,11 @@ class _StateHook<T> extends Hook<ValueNotifier<T>> {
 }
 
 class _StateHookState<T> extends HookState<ValueNotifier<T>, _StateHook<T>> {
-  late final ValueNotifier<T> _notifier = ValueNotifier<T>(hook.initialData)..addListener(_listener);
+  late final ValueNotifier<T> _notifier =
+      ((context as HookElement).isAsyncHookElement
+            ? _AsyncServerValueNotifier<T>(hook.initialData)
+            : ValueNotifier<T>(hook.initialData))
+        ..addListener(_listener);
 
   void _listener() {
     setState(() {});
@@ -302,6 +307,16 @@ class _StateHookState<T> extends HookState<ValueNotifier<T>, _StateHook<T>> {
   void dispose() {
     _notifier.dispose();
   }
+}
+
+class _AsyncServerValueNotifier<T> extends ValueNotifier<T> {
+  _AsyncServerValueNotifier(super.value);
+
+  @override
+  set value(T newValue) => throw StateError(
+    'Async server hook state is a read-only initial snapshot. '
+    'Use local variables or refs for non-reactive server computations.',
+  );
 }
 
 /// A [ValueNotifier] that ignores assignments after it has been disposed.
@@ -338,6 +353,8 @@ class GuardedValueNotifier<T> extends ValueNotifier<T> {
 /// Use it for state written after an `await`, a timer, or a browser callback,
 /// where the owning component may already be gone. Unlike [useState], late
 /// writes neither throw nor need an `IsMounted` check.
+/// In an async server host it is read-only while mounted and still drops writes
+/// after disposal.
 GuardedValueNotifier<T> useGuardedState<T>(T initialData) => use(_GuardedStateHook<T>(initialData));
 
 class _GuardedStateHook<T> extends Hook<GuardedValueNotifier<T>> {
@@ -350,7 +367,11 @@ class _GuardedStateHook<T> extends Hook<GuardedValueNotifier<T>> {
 }
 
 class _GuardedStateHookState<T> extends HookState<GuardedValueNotifier<T>, _GuardedStateHook<T>> {
-  late final GuardedValueNotifier<T> _notifier = GuardedValueNotifier<T>(hook.initialData)..addListener(_listener);
+  late final GuardedValueNotifier<T> _notifier =
+      ((context as HookElement).isAsyncHookElement
+            ? _AsyncServerGuardedValueNotifier<T>(hook.initialData)
+            : GuardedValueNotifier<T>(hook.initialData))
+        ..addListener(_listener);
 
   void _listener() {
     setState(() {});
@@ -362,5 +383,18 @@ class _GuardedStateHookState<T> extends HookState<GuardedValueNotifier<T>, _Guar
   @override
   void dispose() {
     _notifier.dispose();
+  }
+}
+
+class _AsyncServerGuardedValueNotifier<T> extends GuardedValueNotifier<T> {
+  _AsyncServerGuardedValueNotifier(super.value);
+
+  @override
+  set value(T newValue) {
+    if (isDisposed) return;
+    throw StateError(
+      'Async server hook state is a read-only initial snapshot. '
+      'Use local variables or refs for non-reactive server computations.',
+    );
   }
 }
