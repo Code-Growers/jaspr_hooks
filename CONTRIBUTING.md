@@ -24,7 +24,7 @@ dart pub get
 dart run jaspr_cli:jaspr serve
 ```
 
-The example pins `jaspr_cli 0.24.0-beta.0`. Press `r` to hot reload or run
+The example pins `jaspr_cli 0.24.0-beta.1`. Press `r` to hot reload or run
 `dart run jaspr_cli:jaspr serve --auto reload`. Hook state, refs, and node keys survive matching
 builds; memoization, effects, and disposable resources refresh. Hot restart
 with `R` after structural hook changes when state could shift between calls.

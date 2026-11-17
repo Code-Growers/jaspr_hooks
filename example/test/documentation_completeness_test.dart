@@ -256,7 +256,7 @@ Set<String> _exportedUseApis(Directory packageRoot) {
   );
 
   final Set<String> names = <String>{};
-  for (final String entrypoint in <String>['jaspr_hooks.dart', 'web.dart', 'server.dart']) {
+  for (final String entrypoint in <String>['jaspr_hooks.dart', 'form.dart', 'web.dart', 'server.dart']) {
     final File library = File('${packageRoot.path}/lib/$entrypoint');
     for (final RegExpMatch export in exportPattern.allMatches(library.readAsStringSync())) {
       final File source = File('${packageRoot.path}/lib/${export.group(1)}');

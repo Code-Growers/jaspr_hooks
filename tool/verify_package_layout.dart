@@ -6,6 +6,9 @@ const _required = <String>[
   'CHANGELOG.md',
   'THIRD_PARTY_NOTICES.md',
   'lib/jaspr_hooks.dart',
+  'lib/hooks.dart',
+  'lib/query.dart',
+  'lib/form.dart',
   'lib/server.dart',
   'example/example.md',
 ];

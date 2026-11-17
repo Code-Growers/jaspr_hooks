@@ -1,6 +1,6 @@
 name: jaspr_hooks
-description: React-style lifecycle and state hooks for native Jaspr components.
-version: 0.3.0-beta.2
+description: Native Jaspr hooks for component lifecycle, cached queries, mutations and typed forms with validation, autosave and submission state.
+version: 0.3.0-beta.3
 repository: https://github.com/Code-Growers/jaspr_hooks
 issue_tracker: https://github.com/Code-Growers/jaspr_hooks/issues
 documentation: https://code-growers.github.io/jaspr_hooks/

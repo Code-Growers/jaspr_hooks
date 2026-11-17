@@ -1,6 +1,7 @@
 /// Ordered lifecycle and state hooks for native Jaspr components.
 library;
 
+export 'form.dart';
 export 'src/actions.dart';
 export 'src/async.dart';
 export 'src/convenience.dart';

@@ -2,14 +2,14 @@
 
 # jaspr_hooks
 
-Lifecycle, local state, and API/server state management hooks for native
+Lifecycle, local state, cached queries, mutations and typed form hooks for native
 [Jaspr](https://pub.dev/packages/jaspr) components.
 
 `jaspr_hooks` brings the composability of `flutter_hooks` to Jaspr's own
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.3.0-beta.2` is a preview. The API is intentionally being validated in real
+> `0.3.0-beta.3` is a preview. The API is intentionally being validated in real
 > Jaspr applications before `0.3.0`.
 
 ## Install
@@ -17,12 +17,84 @@ HTML on the server and in the browser.
 ```yaml
 dependencies:
   jaspr: ^0.24.0-beta.0
-  jaspr_hooks: ^0.3.0-beta.2
+  jaspr_hooks: ^0.3.0-beta.3
 ```
 
 This preview supports Dart `>=3.13.0 <4.0.0` and Jaspr
 `>=0.24.0-beta.0 <0.25.0`. Jaspr 0.23 applications can keep using
 `jaspr_hooks: ^0.2.0` with Dart 3.8 or later.
+
+## Three modules, one package
+
+| Import | Responsibility |
+| --- | --- |
+| `package:jaspr_hooks/hooks.dart` | Component lifecycle, local state, subscriptions and effects |
+| `package:jaspr_hooks/query.dart` | Cached server state, mutations, retries, hydration and invalidation |
+| `package:jaspr_hooks/form.dart` | Typed drafts, fields, validation, submissions, dirty state and autosave |
+
+The existing `jaspr_hooks.dart` umbrella remains compatible and exports all three.
+Forms do not import queries: submit callbacks can call `mutation.mutateAsync`, a
+repository, or another asynchronous persistence API.
+
+## Forms, inspired by TanStack Form
+
+The headless native Dart module follows [TanStack Form](https://tanstack.com/form/latest)
+concepts and naming. Typed field lenses replace TypeScript deep-key inference.
+It has no JavaScript, schema-library, protobuf, router or design-system dependency.
+
+```dart
+final form = useForm(FormOptions<String>(
+  defaultValues: '',
+  onSubmit: (context) async {
+    await repository.saveName(context.value);
+    return const FormSubmitResult.success();
+  },
+));
+final name = useField(form, FormFieldKey<String, String>(
+  'name', read: (value) => value, write: (_, value) => value,
+), validators: FieldValidators<String, String>(
+  onChange: (value, _) => value.trim().isEmpty
+      ? [const FormIssue('Enter a name.', code: 'required')]
+      : [],
+));
+final submitting = useFormState(form, (state) => state.isSubmitting);
+// Bind name.value, name.handleChange, name.handleBlur and name.meta.errors
+// to existing accessible controls. Submit with form.handleSubmit().
+```
+
+- **Typed drafts and fields:** `FormController<T>`, `FormFieldKey<T, V>` and
+  `FieldController<T, V>`. Keep partially entered numeric/date text in the draft;
+  parse it through domain validation and request mapping.
+- **Validation:** field/form `onChange`, `onBlur`, `onSubmit` and async equivalents,
+  debounce, linked fields (`listenTo`), cancellation signals and stale-result
+  protection. Multiple errors can retain indexed paths and backend rule codes.
+- **Error ownership:** `errorMap` separates validation events and server errors.
+  Editing one field retains errors on other fields. Put unknown backend paths in
+  `FormErrors.form`; transport exceptions remain separate from field validation.
+- **Submission:** `handleSubmit` validates, prevents duplicate writes, awaits the
+  callback and records failures. Return `.invalid(errors)` for server rejection
+  or `.uncertain()` when a write may have committed; `allowRetry()` acknowledges
+  uncertainty. Mutations never retry automatically.
+- **Baselines:** `isDirty` records edit history; `isDefaultValue` compares with
+  defaults. `hasUnsavedChanges` compares against the last confirmed save. Saving
+  an older revision never clears edits made in flight. `reset(newValues)` is an
+  explicit replacement of the draft and baseline.
+- **Subscriptions:** `useForm` owns the controller; `useField` and `useFormState`
+  subscribe consumers. Use stable selectors or an equality function for allocated
+  selections. Defaults changing on rebuild never replace edited values.
+- **Optional autosave:** `useFormAutosave`/`FormAutosave` debounce and serialize
+  writes. `canSave` can defer saving while focused; call `flush()` on blur.
+  Failed revisions remain dirty and require a new edit or explicit retry.
+- **Navigation:** `useFormNavigationGuard` registers a live predicate with the
+  router-neutral `FormNavigationGuard`. App adapters cover routes/history,
+  browser unload and dialog dismissal using `state.shouldBlockNavigation`.
+- **SSR:** form hooks do not submit, validate asynchronously, start autosave or
+  register blockers on the server. Subscriptions and timers dispose on unmount.
+
+Use immutable drafts or supply `FormOptions.copy` and `equals`. Backend mapping,
+localization, focus management and business validation stay in app adapters;
+transport deadlines and cache updates stay in mutations. See the
+[forms guide](https://code-growers.github.io/jaspr_hooks/forms/).
 
 ## API state management, inspired by React Query
 

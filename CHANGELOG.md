@@ -1,3 +1,14 @@
+# 0.3.0-beta.3
+
+- Add separate core hooks, query and form modules with compatible umbrella imports.
+- Add typed forms/fields, event-based sync/async validation, error sources,
+  submission state, accepted baselines, optional autosave and navigation guards.
+- Preserve edits made during pending saves and ignore stale asynchronous validation
+  results; retain independent error sources, original field paths and rule codes.
+- Keep the form module independent of transports, protobuf, queries, routers and
+  design systems; persistence and navigation adapters remain application-owned.
+- Add form guides, API reference pages, interactive demos and lifecycle/SSR tests.
+
 # 0.3.0-beta.2
 
 - Add a framework-independent QueryClient and reactive useQuery/useMutation hooks.

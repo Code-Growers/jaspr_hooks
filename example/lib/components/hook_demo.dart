@@ -14,6 +14,11 @@ class HookDemo extends StatelessComponent {
   final String name;
 
   static const Set<String> supportedNames = <String>{
+    'useForm',
+    'useField',
+    'useFormState',
+    'useFormAutosave',
+    'useFormNavigationGuard',
     'use',
     'useQuery',
     'useMutation',
@@ -106,6 +111,56 @@ class HookDemo extends StatelessComponent {
     );
   }
 
+  Component _formDemo() {
+    final saved = useGuardedState('');
+    final autosaving = useGuardedState(false);
+    final form = useForm<String>(
+      FormOptions(
+        defaultValues: '',
+        onSubmit: (context) async {
+          await Future<void>.delayed(const Duration(milliseconds: 350));
+          if (context.value == 'taken') {
+            return FormSubmitResult.invalid(FormErrors.messages({'name': 'This name is already used.'}));
+          }
+          saved.value = context.value;
+          return const FormSubmitResult.success();
+        },
+      ),
+    );
+    final field = useField(
+      form,
+      FormFieldKey<String, String>('name', read: (value) => value, write: (_, value) => value),
+      validators: FieldValidators<String, String>(
+        onSubmit: (value, _) => value.trim().isEmpty ? const [FormIssue('Enter a name.')] : const [],
+      ),
+    );
+    final state = useFormState(form, (state) => state);
+    useFormAutosave(form, canSave: () => autosaving.value);
+    final guard = useMemoized(FormNavigationGuard.new);
+    useFormNavigationGuard(guard, () => form.state.shouldBlockNavigation);
+    return div([
+      label(htmlFor: 'form-demo-$name', [Component.text('Name')]),
+      input(
+        id: 'form-demo-$name',
+        value: field.value,
+        onInput: field.handleChange,
+        events: {'blur': (_) => field.handleBlur()},
+      ),
+      for (final issue in field.meta.errors) p(attributes: const {'role': 'alert'}, [Component.text(issue.message)]),
+      p([Component.text('Unsaved: ${state.hasUnsavedChanges}; status: ${state.status.name}; saved: ${saved.value}')]),
+      button(
+        disabled: state.isSubmitting,
+        onClick: () {
+          unawaited(form.handleSubmit());
+        },
+        [Component.text('Save')],
+      ),
+      button(onClick: () => form.reset(), [Component.text('Reset')]),
+      button(onClick: () => autosaving.value = !autosaving.value, [Component.text('Autosave: ${autosaving.value}')]),
+      p([Component.text('Navigation requires confirmation: ${guard.isBlocked}')]),
+    ]);
+  }
+
   Component _queryDemo() {
     final client = useDisposable(QueryClient.new, (client) => client.dispose());
     useQueryLifecycle(client);
@@ -133,6 +188,7 @@ class HookDemo extends StatelessComponent {
   Component _buildDemo(String name, BuildContext context) {
     return switch (name) {
       'useQuery' || 'useMutation' || 'useQueryClient' || 'useQueryLifecycle' => _queryDemo(),
+      'useForm' || 'useField' || 'useFormState' || 'useFormAutosave' || 'useFormNavigationGuard' => _formDemo(),
       'use' => _useDemo(),
       'useAbortController' => _useAbortControllerDemo(),
       'useActiveElement' => _useActiveElementDemo(),

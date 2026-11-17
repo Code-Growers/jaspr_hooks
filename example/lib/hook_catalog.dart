@@ -7,6 +7,7 @@ enum HookCategory {
   state('Lifecycle & state'),
   convenience('Convenience state'),
   async('Async'),
+  forms('Forms'),
   actions('Actions'),
   listenables('Listenables'),
   browser('Browser lifecycle'),
@@ -45,6 +46,7 @@ final class HookDoc {
     HookCategory.foundation => 'test/foundation_hooks_test.dart',
     HookCategory.primitives || HookCategory.state => 'test/primitives_test.dart',
     HookCategory.convenience => 'test/convenience_test.dart',
+    HookCategory.forms => 'test/form_hooks_test.dart',
     HookCategory.async => 'test/async_test.dart',
     HookCategory.actions => 'test/actions_test.dart',
     HookCategory.listenables => 'test/listenable_test.dart',
@@ -54,6 +56,37 @@ final class HookDoc {
 }
 
 const List<HookDoc> hookCatalog = <HookDoc>[
+  HookDoc(
+    name: 'useForm',
+    slug: 'use-form',
+    category: HookCategory.forms,
+    summary: 'Own typed draft values, validation and submission state.',
+  ),
+  HookDoc(
+    name: 'useField',
+    slug: 'use-field',
+    category: HookCategory.forms,
+    summary: 'Bind a typed field lens to value, metadata and validation.',
+  ),
+  HookDoc(
+    name: 'useFormState',
+    slug: 'use-form-state',
+    category: HookCategory.forms,
+    summary: 'Subscribe to a selected slice of form state.',
+  ),
+  HookDoc(
+    name: 'useFormAutosave',
+    slug: 'use-form-autosave',
+    category: HookCategory.forms,
+    summary: 'Debounce and serialize optional saves without automatic write retries.',
+  ),
+  HookDoc(
+    name: 'useFormNavigationGuard',
+    slug: 'use-form-navigation-guard',
+    category: HookCategory.forms,
+    summary: 'Register unsaved work with a router-neutral leave guard.',
+  ),
+
   HookDoc(
     name: 'useQuery',
     slug: 'use-query',
@@ -507,6 +540,7 @@ const List<HookDoc> hookCatalog = <HookDoc>[
 ];
 
 const List<({String title, String href})> guideCatalog = <({String title, String href})>[
+  (title: 'Forms', href: 'forms'),
   (title: 'Getting started', href: 'guides/getting-started'),
   (title: 'AI agents', href: 'guides/ai-agents'),
   (title: 'Rules of hooks', href: 'guides/rules-of-hooks'),

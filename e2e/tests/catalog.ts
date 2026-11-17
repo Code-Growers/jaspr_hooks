@@ -4,6 +4,12 @@ export interface HookPage {
 }
 
 export const hookPages: readonly HookPage[] = [
+  {api: 'useForm', slug: 'use-form'},
+  {api: 'useField', slug: 'use-field'},
+  {api: 'useFormState', slug: 'use-form-state'},
+  {api: 'useFormAutosave', slug: 'use-form-autosave'},
+  {api: 'useFormNavigationGuard', slug: 'use-form-navigation-guard'},
+
   {api: 'useQuery', slug: 'use-query'},
   {api: 'useMutation', slug: 'use-mutation'},
   {api: 'useQueryClient', slug: 'use-query-client'},
