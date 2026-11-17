@@ -477,26 +477,26 @@ packages:
     dependency: "direct main"
     description:
       name: jaspr
-      sha256: "455e5e5e576850581ddf056358be149a721c59fadc2a7347663aa3eedbdb2749"
+      sha256: de3f71f0820778f1ac540a08f1687e37d3cb0aeed0b6fbcb0ff404e961bf57cc
       url: "https://pub.dev"
     source: hosted
-    version: "0.24.0-beta.0"
+    version: "0.24.0-beta.1"
   jaspr_builder:
     dependency: "direct dev"
     description:
       name: jaspr_builder
-      sha256: "3d999386d471c9be336edead5b68a9ce6385dc9d39c0fab3fb636d80e523f762"
+      sha256: "66cedf0fd5df87defbca58fd651581568a7af9a231e00fd95b30a4e11e87f877"
       url: "https://pub.dev"
     source: hosted
-    version: "0.24.0-beta.0"
+    version: "0.24.0-beta.1"
   jaspr_cli:
     dependency: "direct dev"
     description:
       name: jaspr_cli
-      sha256: da4be6f14b5c274d952806d1ec6d6e3584232dffb998a8e9bc2acac060a640a9
+      sha256: "10ca8df487e57f4f6ac49b71a5b63578c68647b3942cc59baea328494afc093b"
       url: "https://pub.dev"
     source: hosted
-    version: "0.24.0-beta.0"
+    version: "0.24.0-beta.1"
   jaspr_content:
     dependency: "direct main"
     description:
@@ -511,7 +511,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.3.0-beta.1"
+    version: "0.3.0-beta.2"
   jaspr_lints:
     dependency: "direct dev"
     description:
@@ -532,10 +532,10 @@ packages:
     dependency: "direct dev"
     description:
       name: jaspr_test
-      sha256: b0dd6a105b31166b125176ee1de25c6f7dbb66eddb42966c50a9e15d4891ad0f
+      sha256: "0593501ee344b0886ec32e128e6f8d78cce1e2f14f95ef378fd912c68027dda0"
       url: "https://pub.dev"
     source: hosted
-    version: "0.24.0-beta.0"
+    version: "0.24.0-beta.1"
   json_annotation:
     dependency: transitive
     description:

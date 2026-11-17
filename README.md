@@ -9,7 +9,7 @@ Ordered lifecycle and state hooks for native
 component and element tree. It does not embed Flutter and produces normal Jaspr
 HTML on the server and in the browser.
 
-> `0.3.0-beta.1` is a preview. The API is intentionally being validated in real
+> `0.3.0-beta.2` is a preview. The API is intentionally being validated in real
 > Jaspr applications before `0.3.0`.
 
 ## Install
@@ -17,7 +17,7 @@ HTML on the server and in the browser.
 ```yaml
 dependencies:
   jaspr: ^0.24.0-beta.0
-  jaspr_hooks: ^0.3.0-beta.1
+  jaspr_hooks: ^0.3.0-beta.2
 ```
 
 This preview supports Dart `>=3.13.0 <4.0.0` and Jaspr
@@ -238,3 +238,15 @@ by the Jaspr or `flutter_hooks` projects. The fishing-dog artwork is an original
 project mascot and is not derived from Jaspr's mascot.
 
 The package itself is available under the MIT License in `LICENSE`.
+
+## Server state: queries and mutations
+
+`QueryClient`, `QueryClientProvider`, `useQuery`, `useMutation`, `useQueryClient`
+and `useQueryLifecycle` provide keyed server-state caching. Queries share requests,
+retain data during refetches, support invalidation, cancellation, read-only retry
+policies and SSR hydration. Mutations never retry automatically.
+
+See [the query guide](https://code-growers.github.io/jaspr_hooks/query/) for API usage, repository integration,
+cache ownership, transport deadlines and server prefetching. This is an independent
+Dart implementation inspired by TanStack Query's server-state model; it does not
+claim complete TanStack API or behavior compatibility.

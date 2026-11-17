@@ -35,7 +35,12 @@ final class HookDoc {
 
   String get href => 'hooks/$slug';
 
-  String get testFile => switch (category) {
+  String get testFile => switch (name) {
+    'useQuery' || 'useMutation' || 'useQueryClient' || 'useQueryLifecycle' => 'test/query_hooks_test.dart',
+    _ => _categoryTestFile,
+  };
+
+  String get _categoryTestFile => switch (category) {
     HookCategory.framework => 'test/framework_test.dart',
     HookCategory.foundation => 'test/foundation_hooks_test.dart',
     HookCategory.primitives || HookCategory.state => 'test/primitives_test.dart',
@@ -49,6 +54,30 @@ final class HookDoc {
 }
 
 const List<HookDoc> hookCatalog = <HookDoc>[
+  HookDoc(
+    name: 'useQuery',
+    slug: 'use-query',
+    category: HookCategory.async,
+    summary: 'Observe a shared keyed query cache with freshness, refetching and hydration.',
+  ),
+  HookDoc(
+    name: 'useMutation',
+    slug: 'use-mutation',
+    category: HookCategory.async,
+    summary: 'Run writes with pending, success and error state and cache lifecycle callbacks.',
+  ),
+  HookDoc(
+    name: 'useQueryClient',
+    slug: 'use-query-client',
+    category: HookCategory.async,
+    summary: 'Read the nearest QueryClient for prefetching and invalidation.',
+  ),
+  HookDoc(
+    name: 'useQueryLifecycle',
+    slug: 'use-query-lifecycle',
+    category: HookCategory.async,
+    summary: 'Revalidate stale active queries on browser focus and reconnect.',
+  ),
   HookDoc(
     name: 'use',
     slug: 'custom-hook',

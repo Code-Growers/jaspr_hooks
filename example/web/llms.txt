@@ -12,7 +12,7 @@ This file is the machine-oriented reference for jaspr_hooks. Read it before edit
 
 jaspr_hooks provides ordered local-state and lifecycle hooks for native Jaspr HTML components. It does not embed Flutter, and flutter_hooks cannot be used in a native Jaspr component tree.
 
-Current package version: 0.3.0-beta.1
+Current package version: 0.3.0-beta.2
 Dart constraint: >=3.13.0 <4.0.0
 Jaspr constraint: >=0.24.0-beta.0 <0.25.0 (Jaspr 0.24 release line)
 Universal import: package:jaspr_hooks/jaspr_hooks.dart
@@ -30,7 +30,7 @@ From the Jaspr application's package root, run:
 Or add the dependency explicitly:
 
     dependencies:
-      jaspr_hooks: ^0.3.0-beta.1
+      jaspr_hooks: ^0.3.0-beta.2
 
 Use the universal entry point for components that do not expose native DOM types:
 
@@ -576,3 +576,35 @@ Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-mutation-observer/
 
 Full rendered documentation: https://code-growers.github.io/jaspr_hooks/
 AI-agent guide: https://code-growers.github.io/jaspr_hooks/guides/ai-agents/
+
+## Server-state hooks
+
+### useQuery
+
+QueryResult<T> useQuery<T>(QueryOptions<T> options, {QueryClient? client})
+
+Observe typed data with structured keys and a shared QueryClient. Key changes replace the subscription.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-query/
+
+### useMutation
+
+MutationController<T, V> useMutation<T, V>(MutationOptions<T, V> options)
+
+Execute writes with mutate or mutateAsync. Lifecycle callbacks handle cache updates and rollback context.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-mutation/
+
+### useQueryClient
+
+QueryClient useQueryClient()
+
+Read the nearest QueryClientProvider. Missing providers throw; this hook never allocates a cache.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-query-client/
+
+### useQueryLifecycle
+
+void useQueryLifecycle(QueryClient client)
+
+Install one focus and reconnect event bridge per cache in the app shell.
+Docs: https://code-growers.github.io/jaspr_hooks/hooks/use-query-lifecycle/
+
+QueryClient is request-scoped on SSR and identity-scoped in the browser. Hydrate before initial rendering. Codecs serialize successful results and timestamps only. Queries default to 30-second freshness and timeout, five-minute garbage collection, zero retries. Retry requires readOnly and retryWhen; mutations never retry. Pass cancellation and deadline to actual transports. Keep editable drafts separate.

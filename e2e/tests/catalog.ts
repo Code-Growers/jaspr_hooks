@@ -4,6 +4,10 @@ export interface HookPage {
 }
 
 export const hookPages: readonly HookPage[] = [
+  {api: 'useQuery', slug: 'use-query'},
+  {api: 'useMutation', slug: 'use-mutation'},
+  {api: 'useQueryClient', slug: 'use-query-client'},
+  {api: 'useQueryLifecycle', slug: 'use-query-lifecycle'},
   {api: 'use', slug: 'custom-hook'},
   {api: 'useContext', slug: 'use-context'},
   {api: 'useId', slug: 'use-id'},

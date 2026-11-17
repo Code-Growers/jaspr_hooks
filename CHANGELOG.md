@@ -1,3 +1,14 @@
+# 0.3.0-beta.2
+
+- Add a framework-independent QueryClient and reactive useQuery/useMutation hooks.
+- Add canonical query keys, shared requests, freshness and garbage collection,
+  invalidation, focus/reconnect revalidation, polling and cancellation.
+- Add explicitly allowlisted read retries, per-attempt deadlines and mutation
+  lifecycle callbacks without automatic write retries.
+- Add typed codecs and timestamp-preserving SSR prefetch/dehydrate/hydrate APIs.
+- Document and demonstrate query cache ownership and server/client boundaries.
+- Validate the package and examples against Jaspr 0.24.0-beta.1.
+
 # 0.3.0-beta.1
 
 - Added experimental `AsyncHookComponent` and `AsyncHookBuilder` through the

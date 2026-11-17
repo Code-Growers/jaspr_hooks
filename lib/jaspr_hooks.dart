@@ -9,4 +9,7 @@ export 'src/framework.dart' hide HookElement;
 export 'src/listenable.dart';
 export 'src/misc.dart';
 export 'src/primitives.dart';
+export 'src/query/core.dart';
+export 'src/query/hooks.dart';
+export 'src/query/mutation.dart';
 export 'src/web_lifecycle.dart';

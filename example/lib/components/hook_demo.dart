@@ -15,6 +15,10 @@ class HookDemo extends StatelessComponent {
 
   static const Set<String> supportedNames = <String>{
     'use',
+    'useQuery',
+    'useMutation',
+    'useQueryClient',
+    'useQueryLifecycle',
     'useAbortController',
     'useActiveElement',
     'useAnimationFrame',
@@ -102,8 +106,33 @@ class HookDemo extends StatelessComponent {
     );
   }
 
+  Component _queryDemo() {
+    final client = useDisposable(QueryClient.new, (client) => client.dispose());
+    useQueryLifecycle(client);
+    final value = useRef(0);
+    final options = QueryOptions<int>(key: QueryKey(['demo-counter']), queryFn: (_) async => value.value);
+    final query = useQuery(options, client: client);
+    final mutation = useMutation<int, int>(
+      MutationOptions(
+        mutationFn: (delta, _) async => value.value += delta,
+        onSuccess: (data, _, _) => client.setQueryData(options, data),
+      ),
+    );
+    return div([
+      p([Component.text('Cached count: ${query.data ?? 0}; fetching: ${query.isFetching}')]),
+      button(onClick: () => mutation.mutate(1), [Component.text('Increment')]),
+      button(
+        onClick: () {
+          unawaited(query.refetch());
+        },
+        [Component.text('Refetch')],
+      ),
+    ]);
+  }
+
   Component _buildDemo(String name, BuildContext context) {
     return switch (name) {
+      'useQuery' || 'useMutation' || 'useQueryClient' || 'useQueryLifecycle' => _queryDemo(),
       'use' => _useDemo(),
       'useAbortController' => _useAbortControllerDemo(),
       'useActiveElement' => _useActiveElementDemo(),
