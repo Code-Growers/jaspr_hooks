@@ -2,7 +2,7 @@
 
 # jaspr_hooks
 
-Ordered lifecycle and state hooks for native
+Lifecycle, local state, and API/server state management hooks for native
 [Jaspr](https://pub.dev/packages/jaspr) components.
 
 `jaspr_hooks` brings the composability of `flutter_hooks` to Jaspr's own
@@ -23,6 +23,60 @@ dependencies:
 This preview supports Dart `>=3.13.0 <4.0.0` and Jaspr
 `>=0.24.0-beta.0 <0.25.0`. Jaspr 0.23 applications can keep using
 `jaspr_hooks: ^0.2.0` with Dart 3.8 or later.
+
+## API state management, inspired by React Query
+
+`jaspr_hooks` also provides **query and mutation hooks for API data**, inspired by
+[TanStack Query (React Query)](https://tanstack.com/query/latest/docs/framework/react/overview).
+Use `useQuery` for server reads and `useMutation` for writes, with a shared
+`QueryClient` managing the cache independently of your components.
+
+- **Keyed caching and request deduplication:** components with the same
+  `QueryKey` share data and in-flight requests.
+- **Freshness and revalidation:** configure `staleTime`, inactive-cache
+  `gcTime`, polling, and refetching on mount, window focus, or reconnection.
+- **Query and mutation state:** distinguish initial loading from background
+  fetching, retain cached data while refetching, and expose success/error state.
+- **Writes and invalidation:** update cached results, invalidate key prefixes,
+  and use mutation callbacks for optimistic updates and rollback.
+- **Cancellation, deadlines, and read retries:** propagate cancellation and
+  per-attempt deadlines to your transport. Retries require an explicit read-only
+  declaration and an error classifier; mutations never retry automatically.
+- **SSR and hydration:** prefetch into a request-scoped cache, serialize typed
+  data and fetch timestamps, then restore the cache before browser hydration.
+
+```dart
+// Inside a HookComponent beneath QueryClientProvider:
+final client = useQueryClient();
+final productsKey = QueryKey(['products']);
+final products = useQuery(QueryOptions<List<Product>>(
+  key: productsKey,
+  queryFn: (context) => repository.listProducts(
+    signal: context.signal,
+    timeout: context.timeout,
+  ),
+));
+
+final saveProduct = useMutation(MutationOptions<Product, ProductDraft>(
+  mutationFn: (draft, context) => repository.saveProduct(
+    draft,
+    timeout: context.timeout,
+  ),
+  onSuccess: (_, _, _) => client.invalidateQueries(productsKey),
+));
+
+// Read products.data / products.isLoading / products.isFetching / products.error.
+// Call saveProduct.mutate(draft), or await saveProduct.mutateAsync(draft).
+```
+
+The app owns the `QueryClient`: provide it with `QueryClientProvider`, call
+`useQueryLifecycle(client)` once in the browser shell, and dispose it on logout
+or identity changes. Server rendering uses a separate client for each request.
+Keep editable form drafts separate from cached server data.
+
+These APIs implement the server-state model in native Dart, following Jaspr's
+component lifecycle. The linked guide describes the supported behavior. See the [query and mutation guide](https://code-growers.github.io/jaspr_hooks/query/)
+for cache setup, repositories, transport integration, and SSR examples.
 
 ## A counter without a State class
 
@@ -67,6 +121,7 @@ For lower-level lifecycle objects, extend `Hook<R>` and
 | Primitives | `useState`, `useGuardedState`, `useEffect`, `usePostFrameEffect`, `useMemoized`, `useCallback`, `useRef`, `useValueChanged` |
 | Lifecycle/state | `usePrevious`, `useReducer`, `useIsMounted`, `useDebounced` |
 | Convenience state | `useToggle`, `useCounter`, `useList`, `useMap`, `useSet`, `useQueue`, `useEffectOnce`, `useMount`, `useUnmount`, `useUpdateEffect`, `usePostFrameUpdateEffect` |
+| API/server state | `useQuery`, `useMutation`, `useQueryClient`, `useQueryLifecycle` |
 | Async | `useFuture`, `useStream`, `useStreamController`, `useOnStreamChange` |
 | Actions | `useAsyncAction`, `useOptimistic` |
 | Listenables | `useListenable`, `useListenableSelector`, `useValueNotifier`, `useValueListenable`, `useOnListenableChange` |
@@ -238,15 +293,3 @@ by the Jaspr or `flutter_hooks` projects. The fishing-dog artwork is an original
 project mascot and is not derived from Jaspr's mascot.
 
 The package itself is available under the MIT License in `LICENSE`.
-
-## Server state: queries and mutations
-
-`QueryClient`, `QueryClientProvider`, `useQuery`, `useMutation`, `useQueryClient`
-and `useQueryLifecycle` provide keyed server-state caching. Queries share requests,
-retain data during refetches, support invalidation, cancellation, read-only retry
-policies and SSR hydration. Mutations never retry automatically.
-
-See [the query guide](https://code-growers.github.io/jaspr_hooks/query/) for API usage, repository integration,
-cache ownership, transport deadlines and server prefetching. This is an independent
-Dart implementation inspired by TanStack Query's server-state model; it does not
-claim complete TanStack API or behavior compatibility.
